@@ -1,0 +1,22 @@
+public native struct worldTrafficLanePersistent {
+  public native let outLanes: array<worldTrafficConnectivityOutLane>;
+  public native let inLanes: array<worldTrafficConnectivityInLane>;
+  public native let outline: array<Vector3>;
+  public native let accumulatedLengths: array<Float>;
+  public native let crowdCreationInfo: worldTrafficLaneCrowdCreationInfo;
+  public native let maxSpeed: Uint8;
+  public native let deadEndStart: Float;
+  public native let length: Float;
+  public native let width: Float;
+  public native let area: Float;
+  public native let flags: Uint16;
+  public native let subGraphId: Uint16;
+  public native let playerGPSInfo: worldTrafficLanePlayerGPSInfo;
+  public native let neighborGroupIndex: Uint16;
+  public native let nodeRefHash: Uint64;
+  public native let laneNumber: Uint16;
+  public native let seqNumber: Uint16;
+  public native let isReversed: Bool;
+  public native let roadMaterials: array<worldRoadMaterialInfo>;
+  public native let polygon: array<Vector2>;
+}

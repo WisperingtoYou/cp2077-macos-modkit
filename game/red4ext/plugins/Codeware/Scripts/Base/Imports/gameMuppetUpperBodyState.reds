@@ -1,0 +1,29 @@
+public native struct gameMuppetUpperBodyState {
+  public native let currentWeapon: ItemID;
+  public native let wantedWeapon: ItemID;
+  public native let inProgressWeapon: ItemID;
+  public native let logicWantedWeapon: ItemID;
+  public native let equippingTransitionTime: Float;
+  public native let remainingShotTime: Float;
+  public native let timeTillNextShootSeconds: Float;
+  public native let isAimingDownSight: Bool;
+  public native let currentWeaponAmmo: Int32;
+  public native let currentWeaponAmmoCapacity: Int32;
+  public native let isShooting: Bool;
+  public native let weaponZoomLevel: Float;
+  public native let weaponAimFOV: Float;
+  public native let remainingReloadTime: Float;
+  public native let remainingReloadCooldownTime: Float;
+  public native let shotsMade: Uint32;
+  public native let isMeleeAttackInProgress: Bool;
+  public native let meleeAttacksMade: Uint32;
+  public native let meleeAttackIndex: Int32;
+  public native let remainingMeleeAttackDuration: Float;
+  public native let selectedConsumable: ItemID;
+  public native let consumableInUse: Bool;
+  public native let consumableEffectApplied: Bool;
+  public native let consumableUseTimeStartup: Float;
+  public native let consumableUseTimeRecovery: Float;
+  public native let remainingQuickMeleeTime: Float;
+  public native let remainingQuickMeleeCooldownTime: Float;
+}

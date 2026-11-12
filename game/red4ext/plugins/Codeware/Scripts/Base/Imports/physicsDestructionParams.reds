@@ -1,0 +1,32 @@
+public native struct physicsDestructionParams {
+  public native let startInactive: Bool;
+  public native let simulationType: physicsSimulationType;
+  public native let markEdgeChunks: Bool;
+  public native let useAggregatesForClusters: Bool;
+  public native let turnDynamicOnImpulse: Bool;
+  public native let buildConvexForClusters: Bool;
+  public native let damageThreshold: Float;
+  public native let damageEndurance: Float;
+  public native let bondEndurance: Float;
+  public native let accumulateDamage: Bool;
+  public native let enableImpulseDamage: Bool;
+  public native let impulseToDamage: Float;
+  public native let contactToDamage: Float;
+  public native let maxContactImpulseRatio: Float;
+  public native let impulseChildPropagationFactor: Float;
+  public native let impulsePropagationFactor: Float;
+  public native let impulseDiminishingFactor: Float;
+  public native let breakBonds: Bool;
+  public native let debrisInstantRemovalThreshold: Float;
+  public native let debrisTimeoutThreshold: Float;
+  public native let debrisTimeout: Bool;
+  public native let debrisTimeoutMin: Float;
+  public native let debrisTimeoutMax: Float;
+  public native let fadeOutTime: Float;
+  public native let debrisMaxSeparation: Float;
+  public native let visualsRemain: Bool;
+  public native let debrisDestructible: Bool;
+  public native let supportDamage: Bool;
+  public native let maxAngularVelocity: Float;
+  public native let fractureFieldMask: Uint16; // physicsFractureFieldType
+}

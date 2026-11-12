@@ -1,0 +1,13 @@
+public native struct inkPhotoModeLayerDefinition {
+  public native let enabled: Bool;
+  public native let rootLibrary: ResourceRef; // rRef<inkWidgetLibraryResource>
+  public native let activeByDefault: Bool;
+  public native let isPermanent: Bool;
+  public native let useGlobalStyleTheme: Bool;
+  public native let isAffectedByFadeout: Bool;
+  public native let useGameInput: Bool;
+  public native let inputContext: CName;
+  public native let photoModeResource: ResourceRef; // rRef<inkWidgetLibraryResource>
+  public native let stickersResource: ResourceRef; // rRef<inkWidgetLibraryResource>
+  public native let cursorResource: ResourceRef; // rRef<inkWidgetLibraryResource>
+}

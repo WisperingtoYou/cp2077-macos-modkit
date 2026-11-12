@@ -1,0 +1,1398 @@
+Upstream: https://github.com/jackmaxwil/cp2077-archive-xl-macos
+Base commit: 033f7ec6694e1c208fdf4fa57711b0fb1cd498ef
+Apply: git -C <checkout of that commit> apply ArchiveXL.diff
+
+diff --git a/README.md b/README.md
+index c5032c3..de03e02 100644
+--- a/README.md
++++ b/README.md
+@@ -41,17 +41,23 @@ The `.xl` format is the same as on Windows; see the [upstream project](https://g
+ 
+ ## Known gaps on macOS
+ 
+-- Hot reload (`ArchiveXL.Reload()`) is disabled. It logs `ArchiveXL.Reload() is not supported on macOS.`
+-  Restart the game to pick up changed `.xl` files.
+ - At unload, static game handles are leaked on purpose (`LeakAtExit` in
+   `src/App/Extensions/ExtensionBase.hpp`), because releasing them after the game has shut down crashed on exit.
+ - The macOS game itself does not load mod archives: it never reads `archive/pc/mod/`. ArchiveXL loads that folder
+   instead (in name order, like the game does on Windows), so on macOS `.archive` mods need ArchiveXL even when they
+   have no `.xl` file.
+-- Also off on macOS: the Transmog factory template override, native registration of the two PuppetState enums, and the
+-  WorldWidgetComponent limit patch, collision shape deletions in world streaming sectors (whole-actor deletions work),
+-  and the nails color fallback read from the character customization state (the color still comes from the nails
+-  component). Their addresses or layouts are not verified on macOS.
++- Hot reload, the Transmog factory template override, the PuppetState enums, the WorldWidgetComponent limit patch,
++  collision shape deletions in world streaming sectors and the nails color fallback work as on Windows. They need the
++  RED4ext.SDK address database with the `ResourceLoader_OnUpdate` and `InkWorldLayer_UpdateComponents` entries
++  verified, and an SDK at or after f682fb88 (macOS `CEnum::FromString`). On macOS the WorldWidgetComponent patch
++  rewrites one instruction of the game's code in memory at startup (the file on disk is not changed).
++- Hot reload safety: `ArchiveXL.Reload()` rebuilds the extension state on the main thread while game worker threads
++  run ArchiveXL hooks that read it. One reader/writer lock (`src/App/Extensions/ExtensionGuard.hpp`) keeps them apart:
++  the startup configure/load and the reload hold it exclusively, and the hooks that read reloadable state hold it
++  shared, without waiting for other threads while they hold it. The header lists the guarded hooks and why the others
++  need no guard. While a reload runs, resource loads that reach these hooks wait until it ends (a short stall). Some
++  hooks still race with each other the same way as on Windows (for example customization app overrides and journal
++  mappin resolution); that is unchanged.
+ 
+ ## Troubleshooting
+ 
+diff --git a/src/App/Extensions/Animation/Extension.cpp b/src/App/Extensions/Animation/Extension.cpp
+index ebf2eea..c187de4 100644
+--- a/src/App/Extensions/Animation/Extension.cpp
++++ b/src/App/Extensions/Animation/Extension.cpp
+@@ -84,6 +84,9 @@ void App::AnimationExtension::Configure()
+ 
+ void App::AnimationExtension::OnInitializeAnimations(Red::entAnimatedComponent* aComponent)
+ {
++    // Reads s_animsByTarget (rebuilt by Configure); no waits, so the guard covers the whole handler.
++    ExtensionReadGuard _;
++
+     const auto& templatePath = aComponent->owner->templatePath;
+ 
+     auto anims = s_animsByTarget.find(templatePath);
+diff --git a/src/App/Extensions/Customization/Extension.cpp b/src/App/Extensions/Customization/Extension.cpp
+index 0f9be7d..75b191b 100644
+--- a/src/App/Extensions/Customization/Extension.cpp
++++ b/src/App/Extensions/Customization/Extension.cpp
+@@ -157,6 +157,9 @@ void App::CustomizationExtension::OnInitAppOption(App::CustomizationSystem* aSys
+                                                   Raw::CharacterCustomizationSystem::StateOptions& aStateOptions,
+                                                   Red::Map<Red::CName, App::CustomizationStateOption>& aUiSlots)
+ {
++    // Reads the custom entry names / app overrides that Reload() clears.
++    ExtensionReadGuard _;
++
+     if (!aOption || !aOption->info)
+         return;
+ 
+@@ -176,6 +179,9 @@ void App::CustomizationExtension::OnInitMorphOption(App::CustomizationSystem* aS
+                                                     Raw::CharacterCustomizationSystem::StateOptions& aStateOptions,
+                                                     Red::Map<Red::CName, App::CustomizationStateOption>& aUiSlots)
+ {
++    // Reads the custom entry names / app overrides that Reload() clears.
++    ExtensionReadGuard _;
++
+     if (!aOption || !aOption->info)
+         return;
+ 
+@@ -196,6 +202,9 @@ void App::CustomizationExtension::OnInitSwitcherOption(App::CustomizationSystem*
+                                                        int32_t aCurrentIndex, uint64_t a5,
+                                                        Red::Map<Red::CName, App::CustomizationStateOption>& aUiSlots)
+ {
++    // Reads the custom entry names / app overrides that Reload() clears.
++    ExtensionReadGuard _;
++
+     if (!aOption->isActive && !aOption->info->hidden && aOption->info->enabled)
+     {
+         if (IsCustomEntryName(aOption->info->name))
+@@ -209,6 +218,9 @@ void App::CustomizationExtension::OnGetAppearances(Red::gameuiICharacterCustomiz
+                                                    Red::CName aGroupName, bool aIsFPP,
+                                                    Red::DynArray<Red::AppearanceDescriptor>& aAppearances)
+ {
++    // Reads the custom entry names / app overrides that Reload() clears.
++    ExtensionReadGuard _;
++
+     for (auto& app : aAppearances)
+     {
+         ApplyAppOverride(app);
+@@ -223,6 +235,9 @@ void App::CustomizationExtension::OnChangeAppearance(App::AppearanceChangerSyste
+                                                      Red::AppearanceChangeRequest* aRequest, uintptr_t a3)
+ #endif
+ {
++    // Reads the custom entry names / app overrides that Reload() clears.
++    ExtensionReadGuard _;
++
+     if (/*m_customizationActive &&*/ !m_customAppOverrides.empty())
+     {
+         if (aRequest->oldAppearance)
+@@ -257,6 +272,9 @@ void App::CustomizationExtension::OnChangeAppearances(App::AppearanceChangerSyst
+                                                       uintptr_t a5, uint8_t a6)
+ {
+ #endif
++    // Reads the custom entry names / app overrides that Reload() clears.
++    ExtensionReadGuard _;
++
+     if (/*m_customizationActive &&*/ !m_customAppOverrides.empty())
+     {
+         if (aOldApp)
+@@ -336,6 +354,19 @@ void App::CustomizationExtension::PrefetchCustomResources(Core::Vector<Customiza
+ 
+ void App::CustomizationExtension::MergeCustomEntries(App::CustomizationSystem* aSystem)
+ {
++    // Wait for the game resources before taking the read guard: a guarded thread must not wait for other threads
++    // (see ExtensionGuard.hpp).
++    for (const auto* token : {&Raw::CharacterCustomizationSystem::MaleResource::Ref(aSystem),
++                              &Raw::CharacterCustomizationSystem::FemaleResource::Ref(aSystem)})
++    {
++        if (*token && !(*token)->finished)
++        {
++            Red::WaitForResource(*token, std::chrono::milliseconds(250));
++        }
++    }
++
++    // Reads the custom resources and fills the custom entry names / app overrides, which Reload() resets.
++    ExtensionReadGuard guard;
+     std::unique_lock _(m_customEntriesMergeLock);
+ 
+     if (m_customEntriesMerged)
+@@ -359,14 +390,11 @@ void App::CustomizationExtension::MergeCustomEntries(CustomizationResourceToken&
+         return;
+     }
+ 
++    // The caller waits for the resource before it takes the read guard.
+     if (!aTargetResource.instance->finished)
+     {
+-        Red::WaitForResource(aTargetResource, std::chrono::milliseconds(250));
+-        if (!aTargetResource.instance->finished)
+-        {
+-            LogError("[{}] Game customization resource is not ready.", ExtensionName);
+-            return;
+-        }
++        LogError("[{}] Game customization resource is not ready.", ExtensionName);
++        return;
+     }
+ 
+     auto& gameData = aTargetResource->Get();
+diff --git a/src/App/Extensions/ExtensionBase.hpp b/src/App/Extensions/ExtensionBase.hpp
+index c506fbc..c268e2b 100644
+--- a/src/App/Extensions/ExtensionBase.hpp
++++ b/src/App/Extensions/ExtensionBase.hpp
+@@ -1,5 +1,6 @@
+ #pragma once
+ 
++#include "App/Extensions/ExtensionGuard.hpp"
+ #include "Core/Hooking/HookingAgent.hpp"
+ #include "Core/Logging/LoggingAgent.hpp"
+ 
+diff --git a/src/App/Extensions/ExtensionGuard.hpp b/src/App/Extensions/ExtensionGuard.hpp
+new file mode 100644
+index 0000000..20f07b7
+--- /dev/null
++++ b/src/App/Extensions/ExtensionGuard.hpp
+@@ -0,0 +1,201 @@
++#pragma once
++
++#include <cstdint>
++#include <shared_mutex>
++
++namespace App
++{
++// Hot reload safety (ArchiveXL.Reload()).
++//
++// Configure/Load/Reload clear and rebuild extension state (maps of fixes, scopes, patches, configs). Hook handlers
++// read that state on game worker threads (resource loader, job dispatcher). One process-wide reader/writer lock keeps
++// them apart:
++//
++// - ExtensionWriteGuard (exclusive): the startup Configure()+Load(), OnDepotReady/OnTweakDBReady and the runtime
++//   Configure()+Reload(). These run on the main thread.
++// - ExtensionReadGuard (shared): every handler, or accessor called from a handler, that reads rebuilt state.
++//
++// Rules that keep this deadlock free:
++// 1. A read guard does nothing on the thread that holds the write guard. The rebuild can start resource loads and
++//    hooks on its own thread; a shared lock there would block on itself.
++// 2. A read guard does nothing when the thread already holds a read guard (nested hooks, a guarded handler calling a
++//    guarded accessor). std::shared_mutex blocks new readers when a writer waits, so a second shared lock on the same
++//    thread could block on the waiting writer, which in turn waits for the first shared lock.
++// 3. Code that holds a read guard must not wait for other threads (job waits, resource waits, synchronous loads,
++//    calls to the original game function that can do so). The other thread can block on the lock while a writer
++//    waits, or the writer itself can be the thread it waits for. Handlers copy what they need under the guard and
++//    release it before such work.
++// 4. Lock order: the extension guard is the outermost lock for the writer. Configure/Reload must not take a lock
++//    that a handler can hold while it reaches a read guard (it would invert the order).
++// 5. Code that holds the write guard must not wait for jobs that run guarded hooks. Use ExtensionWriteYield around
++//    such waits (the journal reload waits for the journal load job, which runs the journal hooks).
++//
++// Guarded readers (see the call sites):
++// - ResourceMetaExtension: InScope, GetList, ExpandList, GetFix (return copies).
++// - ResourcePatchExtension: GetPatchList, IsPatchResource (return copies). This covers all its handlers, including
++//   OnMeshResourceLoad and the Hook/HookWrap ones that call the original function.
++// - AnimationExtension::OnInitializeAnimations, QuestPhaseExtension::OnPhasePreload (whole handler, no waits).
++// - FactoryIndexExtension::OnLoadFactoryAsync (copies the factory list, calls the game unguarded).
++// - LocalizationExtension: OnLoadTexts, OnLoadSubtitles, OnLoadVoiceOvers, OnLoadLipsyncs (copy m_configs, load
++//   resources unguarded).
++// - JournalExtension: OnLoadJournal, OnInitializeRoot, OnMappinDataLoaded (whole handler), OnGetMappinData,
++//   OnGetPoiData (guard after the original call; mappin copied, resolved unguarded, written back guarded).
++// - CustomizationExtension: option/appearance handlers that read the custom entry names and app overrides,
++//   MergeCustomEntries (waits for the base resources before it takes the guard).
++// - PuppetStateExtension::GetBodyType.
++// - GarmentExtension::RegisterComponentOverrides (tag definitions from Configure). Configure no longer takes s_mutex:
++//   handlers hold s_mutex across game calls that can reach guarded hooks (s_mutex -> read guard), so the writer must
++//   not take s_mutex after the write guard. The rest of the Garment state is runtime state under s_mutex.
++//
++// Not guarded, and why:
++// - ResourceLinkExtension: its maps have their own locks (s_linksLock, s_copiesLock, s_mappingsLock), also taken by
++//   Configure.
++// - WorldStreamingExtension: s_sectors has s_sectorsLock, taken by Configure and OnSectorPostLoad; OnRegisterSpots
++//   reads no ArchiveXL state.
++// - MeshExtension, AttachmentExtension, InkSpawnerExtension, TransmogExtension: no Configure/Reload state; their
++//   state has its own locks or comes from TweakDB/resources.
++// - QuestPhase OnGameRestored/OnQuestStart: s_forced is filled by the phase hook, never cleared by a reload.
++class ExtensionConfigGuard
++{
++public:
++    static std::shared_mutex& Mutex()
++    {
++        static std::shared_mutex s_mutex;
++        return s_mutex;
++    }
++
++    static bool IsExclusiveOwner()
++    {
++        return t_exclusiveOwner;
++    }
++
++    static bool IsHeldByCurrentThread()
++    {
++        return t_exclusiveOwner || t_sharedDepth > 0;
++    }
++
++private:
++    friend class ExtensionReadGuard;
++    friend class ExtensionWriteGuard;
++    friend class ExtensionWriteYield;
++
++    inline static thread_local bool t_exclusiveOwner = false;
++    inline static thread_local uint32_t t_sharedDepth = 0;
++};
++
++class ExtensionReadGuard
++{
++public:
++    ExtensionReadGuard()
++    {
++        if (ExtensionConfigGuard::t_exclusiveOwner)
++            return;
++
++        if (ExtensionConfigGuard::t_sharedDepth++ == 0)
++        {
++            ExtensionConfigGuard::Mutex().lock_shared();
++        }
++
++        m_active = true;
++    }
++
++    ~ExtensionReadGuard()
++    {
++        Unlock();
++    }
++
++    void Unlock()
++    {
++        if (!m_active)
++            return;
++
++        m_active = false;
++
++        if (--ExtensionConfigGuard::t_sharedDepth == 0)
++        {
++            ExtensionConfigGuard::Mutex().unlock_shared();
++        }
++    }
++
++    ExtensionReadGuard(const ExtensionReadGuard&) = delete;
++    ExtensionReadGuard& operator=(const ExtensionReadGuard&) = delete;
++
++private:
++    bool m_active{false};
++};
++
++class ExtensionWriteGuard
++{
++public:
++    ExtensionWriteGuard()
++    {
++        // Nested write guard: already exclusive.
++        if (ExtensionConfigGuard::t_exclusiveOwner)
++            return;
++
++        // A thread inside a read guard cannot upgrade (it would wait for itself). The caller checks IsAcquired() and
++        // retries later.
++        if (ExtensionConfigGuard::t_sharedDepth > 0)
++        {
++            m_failed = true;
++            return;
++        }
++
++        ExtensionConfigGuard::Mutex().lock();
++        ExtensionConfigGuard::t_exclusiveOwner = true;
++        m_active = true;
++    }
++
++    ~ExtensionWriteGuard()
++    {
++        if (m_active)
++        {
++            ExtensionConfigGuard::t_exclusiveOwner = false;
++            ExtensionConfigGuard::Mutex().unlock();
++        }
++    }
++
++    [[nodiscard]] bool IsAcquired() const
++    {
++        return !m_failed;
++    }
++
++    ExtensionWriteGuard(const ExtensionWriteGuard&) = delete;
++    ExtensionWriteGuard& operator=(const ExtensionWriteGuard&) = delete;
++
++private:
++    bool m_active{false};
++    bool m_failed{false};
++};
++
++// Releases the write guard of the current thread for a scope, then takes it again. Use it around waits for game jobs
++// that run guarded hooks on other threads. The state must be consistent when the scope starts.
++class ExtensionWriteYield
++{
++public:
++    ExtensionWriteYield()
++    {
++        if (!ExtensionConfigGuard::t_exclusiveOwner)
++            return;
++
++        ExtensionConfigGuard::t_exclusiveOwner = false;
++        ExtensionConfigGuard::Mutex().unlock();
++        m_active = true;
++    }
++
++    ~ExtensionWriteYield()
++    {
++        if (m_active)
++        {
++            ExtensionConfigGuard::Mutex().lock();
++            ExtensionConfigGuard::t_exclusiveOwner = true;
++        }
++    }
++
++    ExtensionWriteYield(const ExtensionWriteYield&) = delete;
++    ExtensionWriteYield& operator=(const ExtensionWriteYield&) = delete;
++
++private:
++    bool m_active{false};
++};
++}
+diff --git a/src/App/Extensions/ExtensionLoader.cpp b/src/App/Extensions/ExtensionLoader.cpp
+index 67705f9..16032bd 100644
+--- a/src/App/Extensions/ExtensionLoader.cpp
++++ b/src/App/Extensions/ExtensionLoader.cpp
+@@ -1,5 +1,7 @@
+ #include "ExtensionLoader.hpp"
+ 
++#include <algorithm>
++#include <cctype>
+ #include <cstdlib>
+ #include "App/Utils/Str.hpp"
+ 
+@@ -78,14 +80,38 @@ void App::ExtensionLoader::Configure()
+             auto configDirIt = std::filesystem::recursive_directory_iterator(
+                 configDir, std::filesystem::directory_options::follow_directory_symlink);
+ 
++            Core::Vector<std::filesystem::path> dirConfigs;
+             for (const auto& entry : configDirIt)
+             {
+                 if (entry.is_regular_file() && entry.path().extension() == m_customConfigExt)
+                 {
+-                    successAll &= AddConfig(entry.path(), configDir, configDir == m_bundleDir);
+-                    foundAny = true;
++                    dirConfigs.push_back(entry.path());
+                 }
+             }
++
++#ifdef __APPLE__
++            // Windows (NTFS) walks folders in case-insensitive name order and later .xl files can override earlier
++            // ones; APFS returns entries in no particular order, so sort the way a Windows walk visits them.
++            std::sort(dirConfigs.begin(), dirConfigs.end(), [](const auto& aLeft, const auto& aRight) {
++                auto left = aLeft.begin(), leftEnd = aLeft.end();
++                auto right = aRight.begin(), rightEnd = aRight.end();
++                for (; left != leftEnd && right != rightEnd; ++left, ++right)
++                {
++                    auto a = left->string(), b = right->string();
++                    std::transform(a.begin(), a.end(), a.begin(), [](unsigned char c) { return std::toupper(c); });
++                    std::transform(b.begin(), b.end(), b.begin(), [](unsigned char c) { return std::toupper(c); });
++                    if (a != b)
++                        return a < b;
++                }
++                return left == leftEnd && right != rightEnd;
++            });
++#endif
++
++            for (const auto& path : dirConfigs)
++            {
++                successAll &= AddConfig(path, configDir, configDir == m_bundleDir);
++                foundAny = true;
++            }
+         }
+ 
+         for (const auto& configFile : configFiles)
+diff --git a/src/App/Extensions/ExtensionService.cpp b/src/App/Extensions/ExtensionService.cpp
+index 4bc358b..e93f8cd 100644
+--- a/src/App/Extensions/ExtensionService.cpp
++++ b/src/App/Extensions/ExtensionService.cpp
+@@ -46,18 +46,58 @@ void App::ExtensionService::OnBootstrap()
+     m_loader->Add<WorldStreamingExtension>();
+     m_loader->Add<InkSpawnerExtension>();
+ 
++    // Configure/Load/Reload rebuild the state that hook handlers read on worker threads; they hold the extension
++    // write guard (see ExtensionGuard.hpp).
+     HookOnceAfter<Raw::GameApplication::InitResourceDepot>([&]() {
++        ExtensionWriteGuard _;
+         m_loader->Configure();
+         m_loader->Load();
+     });
+ 
+     HookOnceAfter<Raw::CBaseEngine::LoadGatheredResources>([&]() {
++        ExtensionWriteGuard _;
+         m_loader->OnDepotReady();
+     });
+ 
+     HookAfter<Raw::LoadTweakDB>([&]() {
+         m_loader->OnTweakDBReady();
+     });
++
++#ifdef __APPLE__
++    if (!HookAfter<Raw::ResourceLoader::OnUpdate>([&]() {
++            if (!m_reloadPending.load(std::memory_order_acquire))
++                return;
++
++            std::unique_lock _(m_reloadMutex);
++
++            if (!m_reloadPending.exchange(false, std::memory_order_acq_rel) || !m_loader)
++                return;
++
++            // Exclusive for the whole rebuild: resource loader workers run hook handlers that read the maps being
++            // cleared (e.g. ResourceMetaExtension::GetFix from the CMesh PostLoad hook).
++            ExtensionWriteGuard guard;
++
++            if (!guard.IsAcquired())
++            {
++                // This thread is inside a guarded handler; it cannot take the lock exclusively. Retry next update.
++                m_reloadPending.store(true, std::memory_order_release);
++                return;
++            }
++
++            try
++            {
++                m_loader->Configure();
++                m_loader->Reload();
++            }
++            catch (...)
++            {
++                LogError("ArchiveXL.Reload() failed.");
++            }
++        }))
++    {
++        LogWarning("ResourceLoader update hook failed, ArchiveXL.Reload() will not work.");
++    }
++#endif
+ }
+ 
+ void App::ExtensionService::OnShutdown()
+@@ -74,9 +114,9 @@ void App::ExtensionService::OnShutdown()
+ void App::ExtensionService::Configure()
+ {
+ #ifdef __APPLE__
+-    // The reload runs on the next ResourceLoader update on Windows. macOS has no verified per-frame loader function
+-    // (see RED4ext.SDK docs/re/resources.md, ResourceLoader_OnUpdate), so hot reload is not available.
+-    LogWarning("ArchiveXL.Reload() is not supported on macOS.");
++    // macOS: the ResourceLoader update hook is installed once at bootstrap (no hooking while the game runs); a
++    // request is picked up on the next frame's update, on the game thread, like the Windows one-shot hook.
++    m_reloadPending.store(true, std::memory_order_release);
+ #else
+     std::unique_lock _(m_reloadMutex);
+ 
+@@ -85,8 +125,11 @@ void App::ExtensionService::Configure()
+         HookAfter<Raw::ResourceLoader::OnUpdate>([&]() {
+             std::unique_lock _(m_reloadMutex);
+ 
+-            m_loader->Configure();
+-            m_loader->Reload();
++            {
++                ExtensionWriteGuard guard;
++                m_loader->Configure();
++                m_loader->Reload();
++            }
+ 
+             Unhook<Raw::ResourceLoader::OnUpdate>();
+         });
+diff --git a/src/App/Extensions/ExtensionService.hpp b/src/App/Extensions/ExtensionService.hpp
+index 4fa3b73..cb9d6fb 100644
+--- a/src/App/Extensions/ExtensionService.hpp
++++ b/src/App/Extensions/ExtensionService.hpp
+@@ -24,5 +24,8 @@ protected:
+     Core::UniquePtr<ExtensionLoader> m_loader;
+     std::filesystem::path m_bundleDir;
+     std::mutex m_reloadMutex;
++#ifdef __APPLE__
++    std::atomic<bool> m_reloadPending{false};
++#endif
+ };
+ }
+diff --git a/src/App/Extensions/FactoryIndex/Extension.cpp b/src/App/Extensions/FactoryIndex/Extension.cpp
+index 27a09f6..b5b50b7 100644
+--- a/src/App/Extensions/FactoryIndex/Extension.cpp
++++ b/src/App/Extensions/FactoryIndex/Extension.cpp
+@@ -72,9 +72,16 @@ void App::FactoryIndexExtension::OnLoadFactoryAsync(uintptr_t aIndex, Red::Resou
+ 
+     LogInfo("[{}] Initializing factory index...", ExtensionName);
+ 
+-    if (!s_factories.empty())
++    // Copy s_factories (rebuilt by Configure) under the read guard; the game load call runs unguarded.
++    Core::Map<Red::ResourcePath, std::string> factories;
+     {
+-        for (const auto& [factoryPath, factoryPathStr] : s_factories)
++        ExtensionReadGuard _;
++        factories = s_factories;
++    }
++
++    if (!factories.empty())
++    {
++        for (const auto& [factoryPath, factoryPathStr] : factories)
+         {
+             LogInfo("[{}] Loading factory \"{}\"...", ExtensionName, factoryPathStr);
+ 
+diff --git a/src/App/Extensions/Garment/Dynamic.cpp b/src/App/Extensions/Garment/Dynamic.cpp
+index b1836ae..f3fde46 100644
+--- a/src/App/Extensions/Garment/Dynamic.cpp
++++ b/src/App/Extensions/Garment/Dynamic.cpp
+@@ -840,8 +840,9 @@ App::DynamicAppearanceController::CustomizationData App::DynamicAppearanceContro
+     Raw::CharacterCustomizationHelper::GetHairColor(data.hairColor, system->ref, data.isMale);
+ #endif
+ 
+-#ifndef __APPLE__
+-    // macOS: the system's state handle offset (+0x78) is not verified, so nails color comes only from the components.
++    // macOS: same layout. GetState 0x102458ECC (system vtable +0x1F8) reads the state Handle at +0x78 under the lock at
++    // +0x70; the state's arms groups are at +0x90 (0x28-byte gameuiCustomizationGroup, see GetArmsAppearances1
++    // 0x102451F2C), options are 0x28 bytes with name @0x10 and definition @0x20.
+     if (!data.nailsColor)
+     {
+         auto state = Raw::CharacterCustomizationSystem::State::Ref(system);
+@@ -866,7 +867,6 @@ App::DynamicAppearanceController::CustomizationData App::DynamicAppearanceContro
+             }
+         }
+     }
+-#endif
+ 
+     return data;
+ }
+diff --git a/src/App/Extensions/Garment/Extension.cpp b/src/App/Extensions/Garment/Extension.cpp
+index da4631d..8144baf 100644
+--- a/src/App/Extensions/Garment/Extension.cpp
++++ b/src/App/Extensions/Garment/Extension.cpp
+@@ -120,7 +120,9 @@ bool App::GarmentExtension::Unload()
+ 
+ void App::GarmentExtension::Configure()
+ {
+-    std::unique_lock _(s_mutex);
++    // Runs under the extension write guard; readers of the tag definitions hold the read guard. Do not take s_mutex
++    // here: handlers hold s_mutex while they call into the game, which can reach guarded hooks on the same thread
++    // (s_mutex -> read guard), so write guard -> s_mutex would invert that order and deadlock.
+     for (const auto& unit : m_configs)
+     {
+         for (const auto& tag : unit.tags)
+@@ -695,6 +697,18 @@ void App::GarmentExtension::OnProcessGarmentMesh(Raw::GarmentAssembler::ProcessM
+                                                  const Red::Handle<Red::IComponent>& aComponent,
+                                                  const Red::JobGroup& aJobGroup)
+ {
++    // A mesh that finished loading without a resource (missing file) reaches the game as a null CMesh, and
++    // CMesh::FindAppearance reads +0x1ec from it (crash 2026-11-11). Skip that part and name it in the log instead.
++    auto unusable = [](const Red::SharedPtr<Red::ResourceToken<>>& aToken, const Red::Handle<Red::IComponent>& aComp) {
++        if (aToken && (!aToken->IsFinished() || aToken->resource))
++            return false;
++        LogWarning("[{}] Skipped garment mesh of component \"{}\": mesh \"{}\" did not load.", ExtensionName,
++                   aComp ? aComp->name.ToString() : "?",
++                   aComp ? Core::Resolve<ResourcePathRegistry>()->ResolvePathOrHash(ComponentWrapper(aComp).GetResourcePath())
++                         : std::string("?"));
++        return true;
++    };
++
+     std::unique_lock _(s_mutex);
+     if (auto& entityState = s_stateManager->FindEntityState(aProcessor))
+     {
+@@ -708,14 +722,16 @@ void App::GarmentExtension::OnProcessGarmentMesh(Raw::GarmentAssembler::ProcessM
+                 auto meshToken = ComponentWrapper(aComponent).LoadResourceToken(false);
+                 if (meshToken->IsFinished())
+                 {
+-                    aCallback(aProcessor, aIndex, aPartTemplate, meshToken, aComponent, aJobGroup);
++                    if (!unusable(meshToken, aComponent))
++                        aCallback(aProcessor, aIndex, aPartTemplate, meshToken, aComponent, aJobGroup);
+                 }
+                 else
+                 {
+                     Red::JobQueue jobQueue{aJobGroup};
+                     jobQueue.Wait(meshToken->job);
+-                    jobQueue.Dispatch([aCallback, aProcessor, aIndex, aPartTemplate, meshToken, aComponent](const Red::JobGroup& aJobGroup) {
+-                        aCallback(aProcessor, aIndex, aPartTemplate, meshToken, aComponent, aJobGroup);
++                    jobQueue.Dispatch([aCallback, aProcessor, aIndex, aPartTemplate, meshToken, aComponent, unusable](const Red::JobGroup& aJobGroup) {
++                        if (!unusable(meshToken, aComponent))
++                            aCallback(aProcessor, aIndex, aPartTemplate, meshToken, aComponent, aJobGroup);
+                     });
+                 }
+                 return;
+@@ -723,7 +739,8 @@ void App::GarmentExtension::OnProcessGarmentMesh(Raw::GarmentAssembler::ProcessM
+         }
+     }
+ 
+-    aCallback(aProcessor, aIndex, aPartTemplate, aMeshToken, aComponent, aJobGroup);
++    if (!unusable(aMeshToken, aComponent))
++        aCallback(aProcessor, aIndex, aPartTemplate, aMeshToken, aComponent, aJobGroup);
+ }
+ 
+ // int32_t App::GarmentOverrideExtension::OnGetBaseMeshOffset(Red::Handle<Red::IComponent>& aComponent,
+@@ -809,6 +826,9 @@ void App::GarmentExtension::RegisterComponentOverrides(Core::SharedPtr<EntitySta
+ {
+     RegisterComponentOverrides(aEntityState, aHash, aApperance->partsOverrides);
+ 
++    // The tag definitions come from Configure (see Configure for the lock order).
++    ExtensionReadGuard _;
++
+     for (const auto& visualTag : aApperance->visualTags.tags)
+     {
+         for (auto& [componentName, chunkMask] : s_tagManager->GetOverrides(visualTag))
+diff --git a/src/App/Extensions/Journal/Extension.cpp b/src/App/Extensions/Journal/Extension.cpp
+index f8996ff..cb38d27 100644
+--- a/src/App/Extensions/Journal/Extension.cpp
++++ b/src/App/Extensions/Journal/Extension.cpp
+@@ -53,12 +53,21 @@ void App::JournalExtension::Reload()
+     {
+         ResetResourceData();
+         ResetRuntimeData();
++
++        // ReloadJournal waits for the journal load job, which runs OnLoadJournal/OnInitializeRoot on worker threads
++        // under the read guard. Release the write guard for the wait or the job blocks on it (see ExtensionGuard.hpp).
++        // The configs are rebuilt and the journal data is reset, so the state is consistent here.
++        ExtensionWriteYield yield;
+         ReloadJournal();
+     }
+ }
+ 
+ void App::JournalExtension::OnLoadJournal(uintptr_t a1, Red::JobGroup& aJobGroup)
+ {
++    // Reads m_configs, fills s_resources/s_paths (reset by Reload). LoadAsync and JobQueue::Wait (a dependency, not a
++    // blocking wait) do not wait for other threads, so the guard covers the whole handler.
++    ExtensionReadGuard _;
++
+     LogInfo("[{}] Journal tree is initializing...", ExtensionName);
+ 
+     if (m_configs.empty())
+@@ -99,6 +108,9 @@ void App::JournalExtension::OnInitializeRoot(Red::game::JournalRootFolderEntry*
+ {
+     static const auto s_rootEntryType = Red::GetClass<Red::game::JournalRootFolderEntry>();
+ 
++    // Reads m_configs and s_resources, fills s_mappins; merging only edits the journal tree.
++    ExtensionReadGuard _;
++
+     if (m_configs.empty() || !s_rootEntryType || !aJournalRoot)
+         return;
+ 
+@@ -170,6 +182,8 @@ void App::JournalExtension::OnMappinDataLoaded(void* aMappinSystem, Red::worldRu
+ void App::JournalExtension::OnMappinDataLoaded(void* aMappinSystem, Red::worldRuntimeScene*)
+ #endif
+ {
++    ExtensionReadGuard _;
++
+     if (!Raw::MappinSystem::CookedMappinResource::Ptr(aMappinSystem)->instance ||
+         !Raw::MappinSystem::CookedPoiResource::Ptr(aMappinSystem)->instance)
+         return;
+@@ -202,15 +216,17 @@ void* App::JournalExtension::OnGetMappinData(void* aMappinSystem, uint32_t aHash
+ {
+     auto result = Raw::MappinSystem::GetMappinData(aMappinSystem, aHash);
+ 
+-    if (!result && !s_mappins.empty())
++    if (!result)
+     {
+         auto r8 = get_r8();
+         auto r9 = get_r9();
+ 
+-        const auto it = s_mappins.find(aHash);
+-        if (it != s_mappins.end())
++        // Copy the mappin under the read guard (Reload clears s_mappins) and resolve it without the guard: resolving
++        // calls into the world.
++        if (auto mappin = FindMappin(aHash))
+         {
+-            ResolveCookedMappin(aMappinSystem, aHash, it->second, result);
++            ResolveCookedMappin(aMappinSystem, aHash, *mappin, result);
++            StoreResolvedMappin(aHash, *mappin);
+         }
+ 
+         set_r8(r8);
+@@ -224,15 +240,17 @@ void* App::JournalExtension::OnGetPoiData(void* aMappinSystem, uint32_t aHash)
+ {
+     auto result = Raw::MappinSystem::GetPoiData(aMappinSystem, aHash);
+ 
+-    if (!result && !s_mappins.empty())
++    if (!result)
+     {
+         auto r8 = get_r8();
+         auto r9 = get_r9();
+ 
+-        auto it = s_mappins.find(aHash);
+-        if (it != s_mappins.end())
++        // Copy the mappin under the read guard (Reload clears s_mappins) and resolve it without the guard: resolving
++        // calls into the world.
++        if (auto mappin = FindMappin(aHash))
+         {
+-            ResolveCookedMappin(aMappinSystem, aHash, it->second, result);
++            ResolveCookedMappin(aMappinSystem, aHash, *mappin, result);
++            StoreResolvedMappin(aHash, *mappin);
+         }
+ 
+         set_r8(r8);
+@@ -242,6 +260,31 @@ void* App::JournalExtension::OnGetPoiData(void* aMappinSystem, uint32_t aHash)
+     return result;
+ }
+ 
++std::optional<App::JournalExtension::JournalMappin> App::JournalExtension::FindMappin(uint32_t aHash)
++{
++    ExtensionReadGuard _;
++
++    const auto it = s_mappins.find(aHash);
++    if (it == s_mappins.end())
++        return std::nullopt;
++
++    return it->second;
++}
++
++void App::JournalExtension::StoreResolvedMappin(uint32_t aHash, const JournalMappin& aMappin)
++{
++    if (!aMappin.resolved.hash)
++        return;
++
++    ExtensionReadGuard _;
++
++    const auto it = s_mappins.find(aHash);
++    if (it != s_mappins.end() && !it->second.resolved.hash)
++    {
++        it->second.resolved = aMappin.resolved;
++    }
++}
++
+ void App::JournalExtension::ResolveCookedMappin(void* aMappinSystem, uint32_t aHash,
+                                                 JournalMappin& aJournalMappin, void*& aCookedMappin)
+ {
+@@ -602,8 +645,50 @@ void App::JournalExtension::ResetRuntimeData()
+ void App::JournalExtension::ReloadJournal()
+ {
+ #ifdef __APPLE__
+-    // Unreachable on macOS: hot reload is disabled (see ExtensionService::Configure), and the journal manager's
+-    // by-hash entry lookup is not identified on macOS.
++    // macOS: Handles come back through x8 and LoadJournal returns its JobHandle (see Red/JournalManager.hpp).
++    auto manager = Red::GetGameSystem<Red::game::IJournalManager>();
++
++    if (!manager)
++        return;
++
++    Red::JournalEntryHash questHash{};
++    Red::JournalEntryHash poiHash{};
++
++    {
++        auto quest = Raw::JournalManager::GetTrackedQuest(manager);
++        auto poi = Raw::JournalManager::GetTrackedPointOfInterest(manager);
++
++        if (quest)
++            questHash = Raw::JournalManager::GetEntryHash(manager, quest);
++
++        if (poi)
++            poiHash = Raw::JournalManager::GetEntryHash(manager, poi);
++    }
++
++    {
++        Red::Handle<Red::game::JournalEntry> null;
++        Raw::JournalManager::TrackQuest(manager, null);
++        Raw::JournalManager::TrackPointOfInterest(manager, null);
++    }
++
++    auto job = Raw::JournalManager::LoadJournal(manager);
++    Raw::JobHandle::Wait(job);
++
++    if (questHash)
++    {
++        auto quest = Raw::JournalManager::GetEntryByHash(manager, questHash);
++
++        if (quest)
++            Raw::JournalManager::TrackQuest(manager, quest);
++    }
++
++    if (poiHash)
++    {
++        auto poi = Raw::JournalManager::GetEntryByHash(manager, poiHash);
++
++        if (poi)
++            Raw::JournalManager::TrackPointOfInterest(manager, poi);
++    }
+ #else
+     auto manager = Red::GetGameSystem<Red::game::IJournalManager>();
+ 
+diff --git a/src/App/Extensions/Journal/Extension.hpp b/src/App/Extensions/Journal/Extension.hpp
+index 3de35d8..abe88ef 100644
+--- a/src/App/Extensions/Journal/Extension.hpp
++++ b/src/App/Extensions/Journal/Extension.hpp
+@@ -52,6 +52,8 @@ private:
+     static void CollectMappin(Red::game::JournalEntry* aEntry, const std::string& aPath);
+     static void ResolveCookedMappin(void* aMappinSystem, uint32_t aHash, JournalMappin& aJournalMappin,
+                                     void*& aCookedMappin);
++    static std::optional<JournalMappin> FindMappin(uint32_t aHash);
++    static void StoreResolvedMappin(uint32_t aHash, const JournalMappin& aMappin);
+     static void ResolveMappinReference(JournalMappin& aMappin);
+     static bool ResolveMappinPosition(uint32_t aJournalHash, const JournalMappin& aMappin, Red::Vector3& aResult);
+     static bool ResolveMappinVolume(uint32_t aJournalHash, const JournalMappin& aMappin,
+diff --git a/src/App/Extensions/Localization/Extension.cpp b/src/App/Extensions/Localization/Extension.cpp
+index aa6731c..83dd373 100644
+--- a/src/App/Extensions/Localization/Extension.cpp
++++ b/src/App/Extensions/Localization/Extension.cpp
+@@ -66,6 +66,14 @@ void App::LocalizationExtension::Configure()
+     }
+ }
+ 
++// The handlers run on loader threads and load resources synchronously; Reload() resets and refills m_configs.
++// Copy the configs under the read guard and do the loading without it (see ExtensionGuard.hpp).
++Core::Vector<App::LocalizationConfig> App::LocalizationExtension::GetConfigsSnapshot()
++{
++    ExtensionReadGuard _;
++    return m_configs;
++}
++
+ void App::LocalizationExtension::OnLoadTexts(Red::Handle<TextResource>& aOnScreens, Red::ResourcePath aPath)
+ {
+     const auto language = Language::ResolveFromTextResource(aPath);
+@@ -75,17 +83,19 @@ void App::LocalizationExtension::OnLoadTexts(Red::Handle<TextResource>& aOnScree
+ 
+     LogInfo("[{}] Initializing texts for \"{}\" language...", ExtensionName, language.ToString());
+ 
++    const auto configs = GetConfigsSnapshot();
++
+     auto mergedAny = false;
+     auto successAll = true;
+ 
+-    if (!m_configs.empty())
++    if (!configs.empty())
+     {
+         auto& entryList = aOnScreens->entries;
+         auto originalCount = entryList.Size();
+         auto originalMaxKey = entryList.Back().primaryKey;
+         auto usedKeyMap = TextEntryMap();
+ 
+-        for (const auto& unit : m_configs)
++        for (const auto& unit : configs)
+         {
+             if (unit.onscreens.empty())
+                 continue;
+@@ -263,14 +273,16 @@ void App::LocalizationExtension::OnLoadSubtitles(Red::Handle<SubtitleResource>&
+ 
+     LogInfo("[{}] Initializing subtitles for \"{}\" language...", ExtensionName, language.ToString());
+ 
++    const auto configs = GetConfigsSnapshot();
++
+     auto mergedAny = false;
+     auto successAll = true;
+ 
+-    if (!m_configs.empty())
++    if (!configs.empty())
+     {
+         auto& entryList = aSubtitles->entries;
+ 
+-        for (const auto& unit : m_configs)
++        for (const auto& unit : configs)
+         {
+             if (unit.subtitles.empty())
+                 continue;
+@@ -336,10 +348,12 @@ void App::LocalizationExtension::OnLoadVoiceOvers(void* aContext, uint64_t a2)
+ {
+     LogInfo("[{}] Initializing voiceover index...", ExtensionName);
+ 
++    const auto configs = GetConfigsSnapshot();
++
+     auto mergedAny = false;
+     auto successAll = true;
+ 
+-    if (!m_configs.empty())
++    if (!configs.empty())
+     {
+         auto depot = Red::ResourceDepot::Get();
+         auto& tokens = Raw::Localization::VoiceOverTokens::Ref(aContext);
+@@ -347,7 +361,7 @@ void App::LocalizationExtension::OnLoadVoiceOvers(void* aContext, uint64_t a2)
+ 
+         for (auto& entry : map->entries)
+         {
+-            for (const auto& unit : m_configs)
++            for (const auto& unit : configs)
+             {
+                 auto paths = unit.vomaps.find(entry.languageCode);
+                 if (paths != unit.vomaps.end())
+@@ -396,13 +410,15 @@ void App::LocalizationExtension::OnLoadLipsyncs(void* aContext, uint8_t a2)
+ 
+         LogInfo("[{}] Initializing lipsync maps for \"{}\" language...", ExtensionName, language.ToString());
+ 
++        const auto configs = GetConfigsSnapshot();
++
+         auto mergedAny = false;
+         bool successAll = true;
+ 
+         auto loader = Red::ResourceLoader::Get();
+         Red::DynArray<Red::SharedPtr<Red::ResourceToken<Red::animLipsyncMapping>>> tokens;
+ 
+-        for (const auto& unit : m_configs)
++        for (const auto& unit : configs)
+         {
+             auto paths = unit.lipmaps.find(language);
+             if (paths != unit.lipmaps.end())
+diff --git a/src/App/Extensions/Localization/Extension.hpp b/src/App/Extensions/Localization/Extension.hpp
+index fead177..1e12022 100644
+--- a/src/App/Extensions/Localization/Extension.hpp
++++ b/src/App/Extensions/Localization/Extension.hpp
+@@ -28,6 +28,8 @@ private:
+     void OnLoadVoiceOvers(void* aContext, uint64_t a2);
+     void OnLoadLipsyncs(void* aContext, uint8_t a2);
+ 
++    Core::Vector<LocalizationConfig> GetConfigsSnapshot();
++
+     static bool MergeTextResource(const std::string& aPath, TextEntryList& aFinalList, TextEntryMap& aUsedKeyMap,
+                                   uint32_t aOriginalCount, uint64_t aOriginalMaxKey, bool aFallback);
+     static void MergeTextEntry(TextEntryList& aFinalList, TextEntry& aNewEntry, uint32_t aIndex,
+diff --git a/src/App/Extensions/PuppetState/Extension.cpp b/src/App/Extensions/PuppetState/Extension.cpp
+index 864acfc..5e33604 100644
+--- a/src/App/Extensions/PuppetState/Extension.cpp
++++ b/src/App/Extensions/PuppetState/Extension.cpp
+@@ -148,6 +148,9 @@ App::PuppetFeetState App::PuppetStateExtension::GetFeetState(const Red::WeakHand
+ 
+ Red::CName App::PuppetStateExtension::GetBodyType(const Red::WeakHandle<Red::GameObject>& aPuppet)
+ {
++    // Reads s_bodyTags (rebuilt by Configure) from appearance suffix resolution on game threads.
++    ExtensionReadGuard _;
++
+     if (!aPuppet || s_bodyTags.empty())
+     {
+         return s_baseBodyType;
+diff --git a/src/App/Extensions/PuppetState/Extension.hpp b/src/App/Extensions/PuppetState/Extension.hpp
+index b762222..501b894 100644
+--- a/src/App/Extensions/PuppetState/Extension.hpp
++++ b/src/App/Extensions/PuppetState/Extension.hpp
+@@ -24,6 +24,7 @@ public:
+ 
+     std::string_view GetName() override;
+ 
++    // Return references into state that Configure rebuilds: hold an ExtensionReadGuard while using them.
+     static const Core::Set<Red::CName>& GetBodyTypes();
+     static const Core::Map<Red::CName, Red::CName>& GetBodyTags();
+ 
+diff --git a/src/App/Extensions/PuppetState/Handler.hpp b/src/App/Extensions/PuppetState/Handler.hpp
+index 835ee14..3edb61f 100644
+--- a/src/App/Extensions/PuppetState/Handler.hpp
++++ b/src/App/Extensions/PuppetState/Handler.hpp
+@@ -99,11 +99,13 @@ private:
+ };
+ }
+ 
+-#ifndef __APPLE__
+-// macOS: not registered. A registered native enum instantiates the SDK's CEnum overrides, whose macOS signatures are
+-// not verified (the game's CEnum::FromString takes a StringView by value in x2/x3, vtable 0x106FFC2B8 +0x78). Nothing
+-// in ArchiveXL's scripts or RTTI properties uses these enums; their names come from RTTI_ENUM_NAME_STR at compile time.
++#ifdef __APPLE__
++// macOS: a registered native enum instantiates the SDK's CEnum overrides. The game's CEnum::FromString (vtable
++// 0x106FFC2B8 +0x78) takes {const char*, uint32} by value in x2/x3; RED4ext.SDK f682fb88 declares it that way and
++// verifies the CEnum Unserialize/ToString/FromString addresses. An older SDK would override the wrong signature.
++static_assert(requires(const Red::CEnum& aEnum, void* aValue) { aEnum.FromString(aValue, "", 0u); },
++              "RED4ext.SDK is too old: CEnum::FromString needs the macOS {const char*, uint32} signature (f682fb88)");
++#endif
+ RTTI_DEFINE_ENUM(App::PuppetArmsState);
+ RTTI_DEFINE_ENUM(App::PuppetFeetState);
+-#endif
+ RTTI_DEFINE_CLASS(App::PuppetStateHandler);
+diff --git a/src/App/Extensions/QuestPhase/Extension.cpp b/src/App/Extensions/QuestPhase/Extension.cpp
+index 68cf362..20fa7ce 100644
+--- a/src/App/Extensions/QuestPhase/Extension.cpp
++++ b/src/App/Extensions/QuestPhase/Extension.cpp
+@@ -80,6 +80,9 @@ void App::QuestPhaseExtension::Configure()
+ void App::QuestPhaseExtension::OnPhasePreload(void* aLoader, Red::ResourcePath aPhasePath,
+                                               Red::Handle<Red::questQuestPhaseResource>& aPhaseResource)
+ {
++    // Reads s_phases (rebuilt by Configure); PatchPhase only edits the phase graph, so the guard covers the handler.
++    ExtensionReadGuard _;
++
+     const auto& phaseMods = s_phases.find(aPhaseResource->path);
+ 
+     if (phaseMods == s_phases.end())
+diff --git a/src/App/Extensions/ResourceMeta/Extension.cpp b/src/App/Extensions/ResourceMeta/Extension.cpp
+index 9d47996..46619c8 100644
+--- a/src/App/Extensions/ResourceMeta/Extension.cpp
++++ b/src/App/Extensions/ResourceMeta/Extension.cpp
+@@ -72,6 +72,7 @@ void App::ResourceMetaExtension::Configure()
+ 
+ bool App::ResourceMetaExtension::InScope(Red::ResourcePath aScopePath, Red::ResourcePath aTargetPath)
+ {
++    ExtensionReadGuard _;
+     const auto& it = s_scopes.find(aScopePath);
+ 
+     if (it == s_scopes.end())
+@@ -80,19 +81,20 @@ bool App::ResourceMetaExtension::InScope(Red::ResourcePath aScopePath, Red::Reso
+     return it->second.contains(aTargetPath);
+ }
+ 
+-const Core::Set<Red::ResourcePath>& App::ResourceMetaExtension::GetList(Red::ResourcePath aScopePath)
++Core::Set<Red::ResourcePath> App::ResourceMetaExtension::GetList(Red::ResourcePath aScopePath)
+ {
+-    static const Core::Set<Red::ResourcePath> s_null;
++    ExtensionReadGuard _;
+     const auto& it = s_scopes.find(aScopePath);
+ 
+     if (it == s_scopes.end())
+-        return s_null;
++        return {};
+ 
+     return it->second;
+ }
+ 
+ Core::Set<std::string> App::ResourceMetaExtension::ExpandList(const Core::Set<std::string>& aList)
+ {
++    ExtensionReadGuard _;
+     Core::Set<std::string> result;
+ 
+     for (const auto& targetPath : aList)
+@@ -102,7 +104,7 @@ Core::Set<std::string> App::ResourceMetaExtension::ExpandList(const Core::Set<st
+         {
+             for (const auto& expandedPath : scopeList)
+             {
+-                result.insert(s_paths[expandedPath]);
++                result.insert(GetPathString(expandedPath));
+             }
+         }
+         else
+@@ -116,6 +118,7 @@ Core::Set<std::string> App::ResourceMetaExtension::ExpandList(const Core::Set<st
+ 
+ Core::Set<Red::ResourcePath> App::ResourceMetaExtension::ExpandList(const Core::Set<Red::ResourcePath>& aList)
+ {
++    ExtensionReadGuard _;
+     Core::Set<Red::ResourcePath> result;
+ 
+     for (const auto& targetPath : aList)
+@@ -137,6 +140,7 @@ Core::Set<Red::ResourcePath> App::ResourceMetaExtension::ExpandList(const Core::
+ Core::Map<Red::ResourcePath, std::string> App::ResourceMetaExtension::ExpandList(
+     const Core::Map<Red::ResourcePath, std::string>& aList)
+ {
++    ExtensionReadGuard _;
+     Core::Map<Red::ResourcePath, std::string> result;
+ 
+     for (const auto& [targetPath, targetPathStr] : aList)
+@@ -146,7 +150,7 @@ Core::Map<Red::ResourcePath, std::string> App::ResourceMetaExtension::ExpandList
+         {
+             for (const auto& expandedPath : scopeList)
+             {
+-                result.insert_or_assign(expandedPath, s_paths[expandedPath]);
++                result.insert_or_assign(expandedPath, GetPathString(expandedPath));
+             }
+         }
+         else
+@@ -158,13 +162,20 @@ Core::Map<Red::ResourcePath, std::string> App::ResourceMetaExtension::ExpandList
+     return result;
+ }
+ 
+-const App::ResourceFix& App::ResourceMetaExtension::GetFix(Red::ResourcePath aTargetPath)
++App::ResourceFix App::ResourceMetaExtension::GetFix(Red::ResourcePath aTargetPath)
+ {
+-    static const ResourceFix s_null;
++    ExtensionReadGuard _;
+     const auto& it = s_fixes.find(aTargetPath);
+ 
+     if (it == s_fixes.end())
+-        return s_null;
++        return {};
+ 
+     return it->second;
+ }
++
++// Read-only lookup: operator[] would insert into s_paths from a reader that holds only the shared guard.
++std::string App::ResourceMetaExtension::GetPathString(Red::ResourcePath aPath)
++{
++    const auto& it = s_paths.find(aPath);
++    return it != s_paths.end() ? it->second : std::string{};
++}
+diff --git a/src/App/Extensions/ResourceMeta/Extension.hpp b/src/App/Extensions/ResourceMeta/Extension.hpp
+index b829ca1..bccd18c 100644
+--- a/src/App/Extensions/ResourceMeta/Extension.hpp
++++ b/src/App/Extensions/ResourceMeta/Extension.hpp
+@@ -14,15 +14,19 @@ public:
+     void Configure() override;
+ 
+     static bool InScope(Red::ResourcePath aScopePath, Red::ResourcePath aTargetPath);
+-    static const Core::Set<Red::ResourcePath>& GetList(Red::ResourcePath aScopePath);
++    // Readers take the extension read guard and return copies: Reload() rebuilds the maps while resource loader
++    // workers call these from hook handlers (see ExtensionGuard.hpp).
++    static Core::Set<Red::ResourcePath> GetList(Red::ResourcePath aScopePath);
+ 
+     static Core::Set<std::string> ExpandList(const Core::Set<std::string>& aList);
+     static Core::Set<Red::ResourcePath> ExpandList(const Core::Set<Red::ResourcePath>& aList);
+     static Core::Map<Red::ResourcePath, std::string> ExpandList(const Core::Map<Red::ResourcePath, std::string>& aList);
+ 
+-    static const ResourceFix& GetFix(Red::ResourcePath aTargetPath);
++    static ResourceFix GetFix(Red::ResourcePath aTargetPath);
+ 
+ private:
++    static std::string GetPathString(Red::ResourcePath aPath);
++
+     inline static Core::Map<Red::ResourcePath, Core::Set<Red::ResourcePath>> s_scopes;
+     inline static Core::Map<Red::ResourcePath, ResourceFix> s_fixes;
+     inline static Core::Map<Red::ResourcePath, std::string> s_paths;
+diff --git a/src/App/Extensions/ResourcePatch/Extension.cpp b/src/App/Extensions/ResourcePatch/Extension.cpp
+index 694053d..4fa456c 100644
+--- a/src/App/Extensions/ResourcePatch/Extension.cpp
++++ b/src/App/Extensions/ResourcePatch/Extension.cpp
+@@ -1392,21 +1392,25 @@ Red::Handle<Red::rendRenderMorphTargetMeshBlob> App::ResourcePatchExtension::Cop
+     return cloneBlob;
+ }
+ 
+-const Core::Vector<App::ResourcePatchExtension::PatchInstancePtr>& App::ResourcePatchExtension::GetPatchList(
++// The handlers run on resource loader workers while Reload() can rebuild the patch maps on the main thread. Copy the
++// list (shared pointers keep the instances alive) under the read guard, so the handlers do their waits and call the
++// game without holding it (see ExtensionGuard.hpp).
++Core::Vector<App::ResourcePatchExtension::PatchInstancePtr> App::ResourcePatchExtension::GetPatchList(
+     Red::ResourcePath aTargetPath)
+ {
+-    static const Core::Vector<PatchInstancePtr> s_null;
++    ExtensionReadGuard _;
+ 
+     const auto& patchIt = s_targetPatches.find(aTargetPath);
+ 
+     if (patchIt == s_targetPatches.end())
+-        return s_null;
++        return {};
+ 
+     return patchIt->second;
+ }
+ 
+ bool App::ResourcePatchExtension::IsPatchResource(Red::ResourcePath aPath)
+ {
++    ExtensionReadGuard _;
+     return s_patches.contains(aPath);
+ }
+ 
+diff --git a/src/App/Extensions/ResourcePatch/Extension.hpp b/src/App/Extensions/ResourcePatch/Extension.hpp
+index e43151c..b6de705 100644
+--- a/src/App/Extensions/ResourcePatch/Extension.hpp
++++ b/src/App/Extensions/ResourcePatch/Extension.hpp
+@@ -117,7 +117,7 @@ private:
+     static Red::Handle<Red::rendRenderMorphTargetMeshBlob> CopyRenderBlob(
+         const Red::Handle<Red::rendRenderMorphTargetMeshBlob>& aSourceBlob);
+ 
+-    static const Core::Vector<PatchInstancePtr>& GetPatchList(Red::ResourcePath aTargetPath);
++    static Core::Vector<PatchInstancePtr> GetPatchList(Red::ResourcePath aTargetPath);
+     static bool IsPatchResource(Red::ResourcePath aPath);
+ 
+     inline static Core::Map<Red::ResourcePath, Core::Vector<PatchInstancePtr>> s_patches;
+diff --git a/src/App/Extensions/Transmog/Extension.cpp b/src/App/Extensions/Transmog/Extension.cpp
+index ea51fb7..717ff55 100644
+--- a/src/App/Extensions/Transmog/Extension.cpp
++++ b/src/App/Extensions/Transmog/Extension.cpp
+@@ -39,14 +39,11 @@ bool App::TransmogExtension::OnLoadTemplate(Red::ItemFactoryAppearanceChangeRequ
+ {
+     Red::ResourcePath originalPath;
+ 
+-#ifdef __APPLE__
+-    // macOS: +0x120 is a WeakHandle whose target type is not verified (LoadTemplate 0x1036FCA88 only checks that it
+-    // locks), so it is not used as a factory index here; the template override is skipped (fail closed).
+-    return Raw::ItemFactoryAppearanceChangeRequest::LoadTemplate(aRequest);
+-#endif
+-
+     auto targetEntity = *reinterpret_cast<uintptr_t*>(reinterpret_cast<uintptr_t>(aRequest) + ItemEntityOffset);
+     auto visualRecord = *reinterpret_cast<Red::gamedataTweakDBRecord**>(aRequest + RecordOffset);
++    // macOS: +0x120 is the instance of a WeakHandle<entGenericListFactory> (the factory index). The request
++    // constructor 0x1036FBA88 picks it from the spawn context's factories with an IsA check against the class stored
++    // at 0x108DCB860 (registered as "entGenericListFactory" by 0x100CC0DB0, the same unit as ResolveResource).
+     auto entityFactory = *reinterpret_cast<uintptr_t*>(aRequest + FactoryOffset);
+ 
+     if (entityFactory && targetEntity && visualRecord)
+diff --git a/src/App/Extensions/WorldStreaming/Extension.cpp b/src/App/Extensions/WorldStreaming/Extension.cpp
+index 55f9491..8e4f6ee 100644
+--- a/src/App/Extensions/WorldStreaming/Extension.cpp
++++ b/src/App/Extensions/WorldStreaming/Extension.cpp
+@@ -274,18 +274,6 @@ bool App::WorldStreamingExtension::PatchSector(Red::world::StreamingSector* aSec
+                     nodeValidationPassed = false;
+                     continue;
+                 }
+-#ifdef __APPLE__
+-                // macOS: the collision node's shape and preset offsets (+0x48, +0x98) are not verified, so shape
+-                // deletions are refused (fail closed); whole-actor deletions still apply.
+-                if (std::ranges::any_of(nodeDeletion.elementDeletions,
+-                                        [](const auto& aDeletion) { return aDeletion.subElementIndex >= 0; }))
+-                {
+-                    LogError("[{}] {}: Collision shape deletions are not supported on macOS, node #{} is not patched.",
+-                             ExtensionName, aSectorMod.mod, nodeDeletion.nodeIndex);
+-                    nodeValidationPassed = false;
+-                    continue;
+-                }
+-#endif
+                 if (!nodeDeletion.elementDeletions.empty())
+                 {
+                     auto& shapes = Raw::CollisionNode::Shapes::Ref(nodeDefinition);
+diff --git a/src/App/Patches/WorldWidgetLimitPatch.cpp b/src/App/Patches/WorldWidgetLimitPatch.cpp
+index a03561a..e8573d0 100644
+--- a/src/App/Patches/WorldWidgetLimitPatch.cpp
++++ b/src/App/Patches/WorldWidgetLimitPatch.cpp
+@@ -1,5 +1,11 @@
+ #include "WorldWidgetLimitPatch.hpp"
+ 
++#ifdef __APPLE__
++#include <libkern/OSCacheControl.h>
++#include <mach/mach.h>
++#include <mach/mach_vm.h>
++#endif
++
+ void App::WorldWidgetLimitPatch::OnBootstrap()
+ {
+ #if defined(_WIN32) || defined(_WIN64)
+@@ -28,8 +34,66 @@ void App::WorldWidgetLimitPatch::OnBootstrap()
+     {
+         LogWarning("WorldWidgetComponent limit patch is not applied, expected pattern was not found.");
+     }
+-#else
+-    // Windows/x64-specific patch (byte pattern + VirtualProtect).
+-    LogWarning("WorldWidgetComponent limit patch is Windows-only; skipping on macOS.");
++#elif defined(__APPLE__)
++    // macOS: the address is the inkWorldLayer component-update job body 0x10491DDB0 (scheduled by 0x10491DB84). For
++    // each component index i of the sorted list it activates the component (0x10491AEA8) when i < 10 and deactivates
++    // it (0x104919B08) otherwise: `cmp x22, #9; b.hi <deactivate>`. Like the Windows patch (which NOPs the `jae`
++    // after `cmp ebx, 0Ah`), replace the branch with a NOP so every component takes the activate path.
++    auto& code = Core::RawPtr<Red::AddressLib::InkWorldLayer_UpdateComponents, uint32_t[0x80]>::Ref();
++    constexpr uint32_t Nop = 0xD503201F;
++    bool success = false;
++
++    for (size_t i = 0; i + 1 < std::size(code); ++i)
++    {
++        // cmp xN|wN, #9 (subs zr, rN, #9) followed by b.hi
++        const bool isCmp9 = (code[i] & 0x7FFFFC1F) == 0x7100241F;
++        const bool isBHi = (code[i + 1] & 0xFF00001F) == 0x54000008;
++        if (isCmp9 && isBHi)
++        {
++            success = PatchCode(&code[i + 1], Nop);
++            break;
++        }
++    }
++
++    if (success)
++    {
++        LogInfo("WorldWidgetComponent limit patch is successfully applied.");
++    }
++    else
++    {
++        LogWarning("WorldWidgetComponent limit patch is not applied, expected pattern was not found.");
++    }
+ #endif
+ }
++
++#ifdef __APPLE__
++bool App::WorldWidgetLimitPatch::PatchCode(uint32_t* aAddress, uint32_t aInstruction)
++{
++    // The game's __TEXT is mapped R-X from a signed file; VM_PROT_COPY gives this process a private writable copy of
++    // the page. This runs at bootstrap, before any world (and ink world layer job) exists.
++    const auto pageSize = static_cast<uintptr_t>(vm_page_size);
++    const auto address = reinterpret_cast<uintptr_t>(aAddress);
++    const auto page = address & ~(pageSize - 1);
++    const auto length = ((address + sizeof(aInstruction) + pageSize - 1) & ~(pageSize - 1)) - page;
++
++    auto kr = mach_vm_protect(mach_task_self(), page, length, FALSE, VM_PROT_READ | VM_PROT_WRITE | VM_PROT_COPY);
++    if (kr != KERN_SUCCESS)
++    {
++        LogError("WorldWidgetComponent limit patch: making the code writable failed ({}).", kr);
++        return false;
++    }
++
++    __atomic_store_n(aAddress, aInstruction, __ATOMIC_RELEASE);
++
++    kr = mach_vm_protect(mach_task_self(), page, length, FALSE, VM_PROT_READ | VM_PROT_EXECUTE);
++    sys_icache_invalidate(aAddress, sizeof(aInstruction));
++
++    if (kr != KERN_SUCCESS)
++    {
++        LogError("WorldWidgetComponent limit patch: restoring code protection failed ({}).", kr);
++        return false;
++    }
++
++    return true;
++}
++#endif
+diff --git a/src/App/Patches/WorldWidgetLimitPatch.hpp b/src/App/Patches/WorldWidgetLimitPatch.hpp
+index 658b55e..b2dac53 100644
+--- a/src/App/Patches/WorldWidgetLimitPatch.hpp
++++ b/src/App/Patches/WorldWidgetLimitPatch.hpp
+@@ -11,5 +11,10 @@ class WorldWidgetLimitPatch
+ {
+ protected:
+     void OnBootstrap() override;
++
++#ifdef __APPLE__
++private:
++    bool PatchCode(uint32_t* aAddress, uint32_t aInstruction);
++#endif
+ };
+ }
+diff --git a/src/Red/JournalManager.hpp b/src/Red/JournalManager.hpp
+index 7226dbf..8f3247d 100644
+--- a/src/Red/JournalManager.hpp
++++ b/src/Red/JournalManager.hpp
+@@ -18,9 +18,35 @@ constexpr auto LoadJournal = Core::RawFunc<
+     /* type = */ void (*)(Red::IScriptable* aManager, Red::JobHandle& aJobHandle)>();
+ #endif
+ 
+-#ifndef __APPLE__
+-// These are MSVC slots. On macOS +0x200/+0x210 return the Handle through x8 and +0x228 looks an entry up by path,
+-// not by hash, so they are Windows-only until the macOS by-hash lookup is identified.
++#ifdef __APPLE__
++// macOS (offsets are MSVC offsets, RawVFunc adds 8; vtable 0x106FA5A80):
++// - +0x200 GetTrackedQuest 0x101EB2F70 and +0x210 GetTrackedPointOfInterest 0x101EB2F88 return the Handle at
++//   manager+0x128 / +0x138 through x8 (the GetTrackedEntry native reads +0x128 directly).
++// - +0x220 0x101EB3214 is the by-hash lookup (Handle through x8, hash in w1; called by the GetEntry native), and
++//   +0x228 is the by-path one (GetEntryByString native). clang keeps the two overloads in declaration order where
++//   MSVC reverses them, so the by-hash slot is 0x218 here, not Windows' 0x220.
++// - +0x238 GetEntryHash 0x101EB3310 (called by the GetEntryHash native) and +0x2A8 TrackPointOfInterest 0x101EB5A38
++//   (stores the Handle to +0x138; +0x2A0 is TrackQuestByPath, which calls the by-path lookup) match Windows.
++constexpr auto GetTrackedQuest = Core::RawVFunc<
++    /* addr = */ 0x1F8,
++    /* type = */ Red::Handle<Red::game::JournalEntry> (Red::gameIJournalManager::*)()>();
++
++constexpr auto GetTrackedPointOfInterest = Core::RawVFunc<
++    /* addr = */ 0x208,
++    /* type = */ Red::Handle<Red::game::JournalEntry> (Red::gameIJournalManager::*)()>();
++
++constexpr auto GetEntryByHash = Core::RawVFunc<
++    /* addr = */ 0x218,
++    /* type = */ Red::Handle<Red::game::JournalEntry> (Red::gameIJournalManager::*)(Red::JournalEntryHash aEntryHash)>();
++
++constexpr auto GetEntryHash = Core::RawVFunc<
++    /* addr = */ 0x230,
++    /* type = */ Red::JournalEntryHash (Red::gameIJournalManager::*)(Red::Handle<Red::game::JournalEntry>& aEntry)>();
++
++constexpr auto TrackPointOfInterest = Core::RawVFunc<
++    /* addr = */ 0x2A0,
++    /* type = */ void (Red::gameIJournalManager::*)(Red::Handle<Red::game::JournalEntry>& aEntry)>();
++#else
+ constexpr auto GetTrackedQuest = Core::RawVFunc<
+     /* addr = */ 0x1F8,
+     /* type = */ void (Red::gameIJournalManager::*)(Red::Handle<Red::game::JournalEntry>& aEntry)>();
+diff --git a/src/Red/ResourceLoader.hpp b/src/Red/ResourceLoader.hpp
+index 1219ad3..44ab138 100644
+--- a/src/Red/ResourceLoader.hpp
++++ b/src/Red/ResourceLoader.hpp
+@@ -24,7 +24,11 @@ constexpr auto LoadAsync = Core::RawFunc<
+     /* type = */ Red::SharedPtr<Red::ResourceToken<>> (*)(Red::ResourceLoader* aLoader,
+                                                           Red::ResourceRequest& aRequest)>();
+ 
+-// macOS: no per-frame ResourceLoader function is verified, so the hot-reload trigger is disabled (ExtensionService).
++// macOS: 0x1021B99A8, the loader's per-frame update. CBaseEngine's tick 0x103D99938 calls it once per frame with the
++// loader global 0x10900B580; it forwards to the resource bank at +0x48 (0x1021B5548, the "EvictResources" pass).
++constexpr auto OnUpdate = Core::RawFunc<
++    /* addr = */ Red::AddressLib::ResourceLoader_OnUpdate,
++    /* type = */ void (*)(Red::ResourceLoader* aLoader)>();
+ #else
+ constexpr auto LoadAsync = Core::RawFunc<
+     /* addr = */ Red::AddressLib::ResourceLoader_RequestResource,
+diff --git a/src/Red/StreamingSector.hpp b/src/Red/StreamingSector.hpp
+index 1c09def..2116a7f 100644
+--- a/src/Red/StreamingSector.hpp
++++ b/src/Red/StreamingSector.hpp
+@@ -173,6 +173,9 @@ constexpr auto PostLoad = Core::RawFunc<
+     /* type = */ void (*)(Red::worldStreamingSector* aSector, uint64_t a2)>();
+ }
+ 
++// macOS: same offsets. worldCollisionNode vtable 0x10719C4C0 slot +0x30 (0x103321494) slices compiledData into
++// actors @0x38 (numActors x 0x30), shapes @0x48 (numShapeInfos x 0x20) and presets @0x98 (numPresets x CName); the
++// physics builder 0x103321768 reads actor+0x20/+0x22, turns presets into filter data and indexes it by shape+0x18.
+ namespace Raw::CollisionNode
+ {
+ using Actors = Core::OffsetPtr<0x38, Red::Range<Red::CollisionActor>>;

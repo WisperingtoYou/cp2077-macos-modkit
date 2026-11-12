@@ -1,0 +1,22 @@
+public native struct rendRenderMeshBlobHeader {
+  public native let version: Uint32;
+  public native let dataProcessing: Uint32;
+  public native let bonePositions: array<Vector4>;
+  public native let renderLODs: array<Float>;
+  public native let renderChunks: array<Uint8>;
+  public native let renderChunkInfos: array<rendChunk>;
+  public native let speedTreeWind: array<Uint8>;
+  public native let opacityMicromaps: array<Uint8>;
+  public native let customData: array<Uint8>;
+  public native let customDataElemStride: Uint32;
+  public native let topologyData: array<Uint8>;
+  public native let topologyDataStride: Uint32;
+  public native let topologyMetadata: array<Uint8>;
+  public native let topologyMetadataStride: Uint32;
+  public native let topology: array<rendTopologyData>;
+  public native let quantizationScale: Vector4;
+  public native let quantizationOffset: Vector4;
+  public native let vertexBufferSize: Uint32;
+  public native let indexBufferSize: Uint32;
+  public native let indexBufferOffset: Uint32;
+}

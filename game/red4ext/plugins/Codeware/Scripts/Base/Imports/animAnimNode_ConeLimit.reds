@@ -1,0 +1,29 @@
+public native class animAnimNode_ConeLimit extends animAnimNode_OnePoseInput {
+  public native let coneTransform: animTransformIndex;
+  public native let constrainedTransform: animTransformIndex;
+  public native let coneAxisLs: Vector3;
+  public native let coneAxisNormalizedLs: Vector3;
+  public native let coneOffsetMs: Vector3;
+  public native let coneOffsetMsLink: animVectorLink;
+  public native let marginEaseOutCurve: CurveDataFloat;
+  public native let limit1: Float;
+  public native let limit1Link: animFloatLink;
+  public native let limit1FloatTrack: animNamedTrackIndex;
+  public native let paraboloidRadius1: Float;
+  public native let limit2: Float;
+  public native let limit2Link: animFloatLink;
+  public native let limit2FloatTrack: animNamedTrackIndex;
+  public native let paraboloidRadius2: Float;
+  public native let limit3: Float;
+  public native let limit3Link: animFloatLink;
+  public native let limit3FloatTrack: animNamedTrackIndex;
+  public native let paraboloidRadius3: Float;
+  public native let limit4: Float;
+  public native let limit4Link: animFloatLink;
+  public native let limit4FloatTrack: animNamedTrackIndex;
+  public native let paraboloidRadius4: Float;
+  public native let coneLimitReached: animNamedTrackIndex;
+  public native let debug: Bool;
+  public native let colorfulCone: Bool;
+  public native let applyDebugConeScalling: Bool;
+}

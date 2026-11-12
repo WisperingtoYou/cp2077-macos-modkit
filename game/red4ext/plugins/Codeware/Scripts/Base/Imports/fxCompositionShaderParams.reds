@@ -1,0 +1,32 @@
+public native struct fxCompositionShaderParams {
+  public native let glitchParam: Float;
+  public native let glitchParam1: Float;
+  public native let health: Float;
+  public native let visionActiveTime: Float;
+  public native let uiFactor: Float;
+  public native let uiPassthroughFactor: Float;
+  public native let mainRenderFactor: Float;
+  public native let blurredRenderFactor: Float;
+  public native let backgroundTextureFactor: Float;
+  public native let backgroundBlurRadius: Float;
+  public native let sphericalDistPower: Vector2;
+  public native let shadowDistance: Vector2;
+  public native let shadowIntensity: Float;
+  public native let shadowRadius: Float;
+  public native let glowIntensity: Float;
+  public native let glowTresholdStart: Float;
+  public native let glowTresholdEnd: Float;
+  public native let glowBlurRadius: Float;
+  public native let vignetteStart: Float;
+  public native let vignetteEnd: Float;
+  public native let vignetteIntensity: Float;
+  public native let blurredRenderSaturation: Float;
+  public native let uiSaturation: Float;
+  public native let chromaticAberrationStrength: Float;
+  public native let uiLayer2Scale: Vector2;
+  public native let uiLayer3Scale: Vector2;
+  public native let uiLayer4Scale: Vector2;
+  public native let uiLayer2Weight: Float;
+  public native let uiLayer3Weight: Float;
+  public native let uiLayer4Weight: Float;
+}

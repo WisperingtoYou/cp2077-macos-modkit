@@ -1,0 +1,41 @@
+Upstream: https://github.com/jac3km4/redscript
+Base commit: e41938253f21a6221883532edff387a2baa26dd8
+Apply: git -C <checkout of that commit> apply redscript.diff
+
+diff --git a/compiler/src/source_map.rs b/compiler/src/source_map.rs
+index f54cc2e..193c204 100644
+--- a/compiler/src/source_map.rs
++++ b/compiler/src/source_map.rs
+@@ -94,8 +94,17 @@ fn dir_file_iter(path: &Path) -> impl Iterator<Item = PathBuf> + use<> {
+     if path.is_file() {
+         Either::Left(iter::once(path.to_path_buf()))
+     } else {
++        // Visit files in the order a Windows (NTFS) directory listing gives: each folder sorted by name,
++        // case-insensitively. Annotations like @wrapMethod on a method another mod adds with @addMethod depend on
++        // that order, and APFS on macOS lists entries in no particular order.
+         let iter = WalkDir::new(path)
+             .follow_links(true)
++            .sort_by(|a, b| {
++                a.file_name()
++                    .to_string_lossy()
++                    .to_uppercase()
++                    .cmp(&b.file_name().to_string_lossy().to_uppercase())
++            })
+             .into_iter()
+             .filter_map(Result::ok)
+             .filter(|entry| entry.path().extension() == Some(OsStr::new("reds")))
+diff --git a/scc/cli/src/main.rs b/scc/cli/src/main.rs
+index 5dfd379..8628a59 100644
+--- a/scc/cli/src/main.rs
++++ b/scc/cli/src/main.rs
+@@ -72,7 +72,9 @@ fn run(opts: Opts, r6_dir: &Path) -> anyhow::Result<bool> {
+         custom_cache_file: Some(custom_cache_file.into()),
+         output_cache_file: opts.output_cache_file.map(PathBuf::into_boxed_path),
+         additional_script_paths,
+-        show_error_popup: true,
++        // REDSCRIPT_NO_POPUP=1: report failures through the exit code and logs only (scripted launches that handle a
++        // failed compile themselves, e.g. the macOS launcher's after-exit recompile).
++        show_error_popup: std::env::var_os("REDSCRIPT_NO_POPUP").is_none_or(|v| v != "1"),
+     };
+ 
+     let is_success = SccApi::load()?.compile(settings.into());

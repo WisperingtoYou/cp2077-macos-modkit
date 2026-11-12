@@ -1,0 +1,28 @@
+public native struct audioGeneralVoiceGruntSettings {
+  public native let variationsCount: Uint32;
+  public native let painLong: CName;
+  public native let agressionShort: CName;
+  public native let agressionLong: CName;
+  public native let longFall: CName;
+  public native let death: CName;
+  public native let silentDeath: CName;
+  public native let grapple: CName;
+  public native let grappleMovement: CName;
+  public native let environmentalKnockdown: CName;
+  public native let bump: CName;
+  public native let curious: CName;
+  public native let fear: CName;
+  public native let jump: CName;
+  public native let effortLong: CName;
+  public native let deathShort: CName;
+  public native let greet: CName;
+  public native let laughHard: CName;
+  public native let laughSoft: CName;
+  public native let phone: CName;
+  public native let braindanceExcited: CName;
+  public native let braindanceFearful: CName;
+  public native let braindanceNeutral: CName;
+  public native let braindanceSexual: CName;
+  public native let contextualVoiceGruntSettings: audioContextualVoiceGruntSettings;
+  public native let gruntVariations: audioVoiceGruntVariations;
+}

@@ -1,0 +1,29 @@
+public native class CMesh extends resStreamedResource {
+  public native let parameters: array<ref<meshMeshParameter>>;
+  public native let boundingBox: Box;
+  public native let surfaceAreaPerAxis: Vector3;
+  public native let materialEntries: array<CMeshMaterialEntry>;
+  public native let externalMaterials: array<ResourceAsyncRef>;
+  public native let localMaterialInstances: array<ref<CMaterialInstance>>;
+  public native let localMaterialBuffer: meshMeshMaterialBuffer;
+  public native let preloadExternalMaterials: array<ResourceRef>;
+  public native let preloadLocalMaterialInstances: array<ref<IMaterial>>;
+  public native let inplaceResources: array<ResourceRef>;
+  public native let appearances: array<ref<meshMeshAppearance>>;
+  public native let objectType: ERenderObjectType;
+  public native let renderResourceBlob: ref<IRenderResourceBlob>;
+  public native let lodLevelInfo: array<Float>;
+  public native let floatTrackNames: array<CName>;
+  public native let boneNames: array<CName>;
+  public native let boneRigMatrices: array<Matrix>;
+  public native let boneVertexEpsilons: array<Float>;
+  public native let lodBoneMask: array<Uint8>;
+  public native let constrainAutoHideDistanceToTerrainHeightMap: Bool;
+  public native let forceLoadAllAppearances: Bool;
+  public native let castGlobalShadowsCachedInCook: Bool;
+  public native let castLocalShadowsCachedInCook: Bool;
+  public native let useRayTracingShadowLODBias: Bool;
+  public native let castsRayTracedShadowsFromOriginalGeometry: Bool;
+  public native let isShadowMesh: Bool;
+  public native let isPlayerShadowMesh: Bool;
+}

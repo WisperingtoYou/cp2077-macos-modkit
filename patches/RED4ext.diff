@@ -1,0 +1,755 @@
+Upstream: https://github.com/jackmaxwil/RED4ext-macos
+Base commit: 3d28f3fc8d15835da5b01a38bed78b9e87baa4c5
+Apply: git -C <checkout of that commit> apply RED4ext.diff
+
+diff --git a/scripts/launch_red4ext.sh b/scripts/launch_red4ext.sh
+index a68345a..f671b47 100755
+--- a/scripts/launch_red4ext.sh
++++ b/scripts/launch_red4ext.sh
+@@ -26,7 +26,9 @@ if [[ "$(macho_uuid "$GAME_BINARY")" != "$(db_uuid "$DB_FILE")" ]]; then
+     echo "Wait for a RED4ext release for the new game version, or play without mods from Steam."
+     exit 1
+ fi
+-if ! codesign -d --entitlements - --xml "$GAME_BINARY" 2>/dev/null | grep -q allow-unsigned-executable-memory; then
++# RED4EXT_ALLOW_STOCK=1: the stock (CDPR-signed) binary is used as is. Hooking works on it on Macs whose SIP
++# configuration allows patching (verified on the cet-mac author's machine); otherwise run install_macos.sh.
++if [[ "${RED4EXT_ALLOW_STOCK:-0}" != 1 ]] && ! codesign -d --entitlements - --xml "$GAME_BINARY" 2>/dev/null | grep -q allow-unsigned-executable-memory; then
+     echo "The game binary is not set up for RED4ext (Steam replaced it). Run this once, then launch again:"
+     echo "  \"$RED4EXT_DIR/macos/scripts/install_macos.sh\""
+     exit 1
+@@ -43,9 +45,21 @@ DB="$RED4EXT_DIR/bin/x64/cyberpunk2077_addresses.json"
+ IGNORED=$(awk '/^ignored *=/{f=1} f{print} f&&/\]/{exit}' "$RED4EXT_DIR/config.ini" 2>/dev/null | grep -o '"[^"]*"' | tr -d '"' || true)
+ # When the launcher exits (after the game, or on a compile failure), take the plugin scripts out again and recompile. Otherwise a later launch from Steam (without
+ # RED4ext) would load scripts that declare natives of plugins that are not loaded and stop at script initialization.
++# If r6/scripts holds mods that need a plugin (Codeware, TweakXL...), that compile fails and scc keeps the modded blob,
++# which a plain Steam launch can't load. Then fall back to scc's backup of the vanilla blob (final.redscripts.bk): Steam's
++# Play button starts the game without script mods, as it would without RED4ext on Windows.
+ cleanup() {
+     rm -rf "$STAGE"
+-    [[ -x "$SCRIPT_DIR/engine/tools/scc" ]] && "$SCRIPT_DIR/engine/tools/scc" -compile "$SCRIPT_DIR/r6/scripts" >/dev/null 2>&1 || true
++    local scc="$SCRIPT_DIR/engine/tools/scc" cache="$SCRIPT_DIR/r6/cache"
++    [[ -x "$scc" ]] || return 0
++    # No error dialog: this compile is expected to fail when mods need plugins (handled below), and it runs after the
++    # game has quit, so a redscript popup would appear out of nowhere and block until dismissed.
++    if ! REDSCRIPT_NO_POPUP=1 "$scc" -compile "$SCRIPT_DIR/r6/scripts" >/dev/null 2>&1; then
++        if [[ -f "$cache/final.redscripts.bk" ]]; then
++            cp "$cache/final.redscripts.bk" "$cache/final.redscripts"
++            echo "Scripts for a launch without RED4ext: some r6/scripts mods need RED4ext plugins, so the vanilla scripts were restored."
++        fi
++    fi
+ }
+ trap cleanup EXIT
+ rm -rf "$STAGE"
+@@ -64,9 +78,12 @@ for dir in "$RED4EXT_DIR"/plugins/*/; do
+     mkdir -p "$STAGE" && cp -R "$dir/Scripts" "$STAGE/$name"
+ done
+ if [[ -x "$SCRIPT_DIR/engine/tools/scc" ]]; then
+-    SCC_OUT=$("$SCRIPT_DIR/engine/tools/scc" -compile "$SCRIPT_DIR/r6/scripts" 2>&1 || true)
++    # scc exits non-zero when compilation fails ("REDScript compilation has failed.").
++    SCC_RC=0
++    # Failures are reported below (and by the launcher app) from the exit code and output, not by a redscript popup.
++    SCC_OUT=$(REDSCRIPT_NO_POPUP=1 "$SCRIPT_DIR/engine/tools/scc" -compile "$SCRIPT_DIR/r6/scripts" 2>&1) || SCC_RC=$?
+     echo "$SCC_OUT" | tail -3
+-    if grep -q "Compilation failed" <<<"$SCC_OUT"; then
++    if [[ $SCC_RC -ne 0 ]]; then
+         echo "$SCC_OUT" | grep -A3 "^\[ERROR" | head -40
+         echo "REDscript compilation failed; not launching (the game would stop at the same errors)."
+         exit 1
+diff --git a/src/dll/App.cpp b/src/dll/App.cpp
+index 28f324b..9d833c2 100644
+--- a/src/dll/App.cpp
++++ b/src/dll/App.cpp
+@@ -1,4 +1,7 @@
+ #include "App.hpp"
++#ifdef RED4EXT_PLATFORM_MACOS
++#include "Platform/CrashHandler.hpp"
++#endif
+ #include "Addresses.hpp"
+ #include "Detail/AddressHashes.hpp"
+ #include "DetourTransaction.hpp"
+@@ -260,6 +263,11 @@ App* App::Get()
+ void App::Startup()
+ {
+     Log::info("RED4ext is starting up...");
++#ifdef RED4EXT_PLATFORM_MACOS
++    // Log fatal signals with the faulting thread's backtrace (stderr + logs/crash_report.txt): macOS stops writing
++    // crash reports for an app that crashed many times in a day.
++    Platform::CrashHandler::Initialize();
++#endif
+ 
+     for (auto& system : m_systems)
+     {
+diff --git a/src/dll/Main.cpp b/src/dll/Main.cpp
+index 21650c1..ac06463 100644
+--- a/src/dll/Main.cpp
++++ b/src/dll/Main.cpp
+@@ -3,6 +3,8 @@
+ #include "Platform.hpp"
+ #include "Utils.hpp"
+ 
++#include <cstdlib>
++
+ #ifdef RED4EXT_PLATFORM_MACOS
+ 
+ void EnableBackgroundModeIfRequested(); // Platform/Background.cpp
+@@ -17,6 +19,10 @@ __attribute__((constructor)) static void RED4extInit()
+             return;
+         }
+ 
++        // Child processes must not inherit the injection: the game runs `/usr/sbin/system_profiler SPDisplaysDataType`
++        // (GPU detection) through /bin/sh; both are arm64e and abort when dyld cannot load this arm64 dylib into them.
++        unsetenv("DYLD_INSERT_LIBRARIES");
++
+         EnableBackgroundModeIfRequested();
+ 
+         // Construct only: App::Startup() (systems and plugins) runs from the hook on the game's main(), once the
+diff --git a/src/dll/Platform/CrashHandler.cpp b/src/dll/Platform/CrashHandler.cpp
+index 63d16a7..011800a 100644
+--- a/src/dll/Platform/CrashHandler.cpp
++++ b/src/dll/Platform/CrashHandler.cpp
+@@ -10,6 +10,8 @@
+ #include <cstring>
+ #include <ctime>
+ #include <dlfcn.h>
++#include <fcntl.h>
++#include <pthread.h>
+ #include <execinfo.h>
+ #include <fmt/format.h>
+ #include <fmt/ostream.h>
+@@ -49,13 +51,160 @@ std::atomic<bool> g_initialized{false};
+ std::atomic<bool> g_inCrashHandler{false};
+ constexpr size_t kMaxStackTraceDepth = 32;
+ 
++
++// Compact first-pass report, written with write() only to a file opened at startup, before anything that could fault
++// again: PC, LR and a frame-pointer walk of the faulting thread (from the signal context), each as module+offset.
++int g_safeFd = -1;
++
++void SafeWrite(const char* aText)
++{
++    if (g_safeFd >= 0)
++        (void)!write(g_safeFd, aText, std::strlen(aText));
++}
++
++void SafeWriteHex(uint64_t aValue)
++{
++    char buf[19] = "0x";
++    for (int i = 0; i < 16; ++i)
++        buf[2 + i] = "0123456789abcdef"[(aValue >> (60 - i * 4)) & 0xF];
++    buf[18] = 0;
++    SafeWrite(buf);
++}
++
++void SafeWriteFrame(const char* aLabel, uint64_t aAddress)
++{
++    SafeWrite(aLabel);
++    SafeWriteHex(aAddress);
++    Dl_info info{};
++    if (aAddress && dladdr(reinterpret_cast<void*>(aAddress), &info) && info.dli_fname)
++    {
++        const char* name = std::strrchr(info.dli_fname, '/');
++        SafeWrite("  ");
++        SafeWrite(name ? name + 1 : info.dli_fname);
++        SafeWrite("+");
++        SafeWriteHex(aAddress - reinterpret_cast<uint64_t>(info.dli_fbase));
++        if (info.dli_sname)
++        {
++            SafeWrite("  ");
++            SafeWrite(info.dli_sname);
++        }
++    }
++    SafeWrite("\n");
++}
++
++// vm_read_overwrite returns an error on a bad address instead of faulting, so this cannot crash the handler.
++void SafeWriteMemory(const char* aLabel, uint64_t aAddress, int aWords)
++{
++    aAddress &= ~7ull;
++    SafeWrite("mem ");
++    SafeWrite(aLabel);
++    SafeWrite(" at ");
++    SafeWriteHex(aAddress);
++    SafeWrite("\n");
++    for (int i = 0; i < aWords; ++i)
++    {
++        uint64_t word = 0;
++        vm_size_t got = 0;
++        if (vm_read_overwrite(mach_task_self(), aAddress + i * 8, 8, reinterpret_cast<vm_address_t>(&word), &got) !=
++            KERN_SUCCESS)
++        {
++            SafeWriteFrame("  unreadable ", aAddress + i * 8);
++            return;
++        }
++        SafeWriteFrame("  ", word);
++    }
++}
++
++// Frame-pointer chain, bounded by the current thread's stack.
++void SafeWriteBacktrace(uint64_t aFp)
++{
++    const auto self = pthread_self();
++    const auto hi = reinterpret_cast<uint64_t>(pthread_get_stackaddr_np(self));
++    const auto lo = hi - pthread_get_stacksize_np(self);
++    uint64_t fp = aFp;
++    for (int depth = 0; depth < 64 && fp >= lo && fp + 16 <= hi && (fp & 7) == 0; ++depth)
++    {
++        const auto* frame = reinterpret_cast<const uint64_t*>(fp);
++        SafeWriteFrame("bt ", frame[1]);
++        if (frame[0] <= fp)
++            break;
++        fp = frame[0];
++    }
++}
++
++std::atomic<uint64_t> g_crashThread{0};
++std::atomic<bool> g_firstReportDone{false};
++std::atomic_flag g_reportLock = ATOMIC_FLAG_INIT;
++
++void SafeReport(int aSig, siginfo_t* aInfo, void* aContext)
++{
++    SafeWrite("\n==== RED4ext crash (signal ");
++    SafeWriteHex(static_cast<uint64_t>(aSig));
++    SafeWrite(") fault address ");
++    SafeWriteHex(reinterpret_cast<uint64_t>(aInfo ? aInfo->si_addr : nullptr));
++    SafeWrite(" ====\n");
++    auto* ctx = static_cast<ucontext_t*>(aContext);
++    if (!ctx || !ctx->uc_mcontext)
++        return;
++    const auto& ss = ctx->uc_mcontext->__ss;
++    SafeWriteFrame("pc ", arm_thread_state64_get_pc(ss));
++    SafeWriteFrame("lr ", arm_thread_state64_get_lr(ss));
++    for (int i = 0; i < 29; ++i)
++    {
++        char label[8] = {'x', static_cast<char>('0' + i / 10), static_cast<char>('0' + i % 10), ' ', 0};
++        SafeWriteFrame(label, ss.__x[i]);
++    }
++    SafeWriteBacktrace(arm_thread_state64_get_fp(ss));
++    // Shows a freed block from a stray write: x0 is usually the bad object, and its first word should be a vtable.
++    const uint64_t object = ss.__x[0];
++    SafeWriteMemory("before x0", object - 0x80, 16);
++    SafeWriteMemory("x0", object, 48);
++    uint64_t firstWord = 0;
++    vm_size_t got = 0;
++    if (vm_read_overwrite(mach_task_self(), object & ~7ull, 8, reinterpret_cast<vm_address_t>(&firstWord), &got) ==
++        KERN_SUCCESS)
++    {
++        SafeWriteMemory("first word of x0", firstWord, 76);
++    }
++    SafeWriteMemory("x19", ss.__x[19], 16);
++    SafeWriteMemory("x20", ss.__x[20], 16);
++    SafeWrite("==== end ====\n");
++}
++
+ void SignalHandler(int sig, siginfo_t* info, void* ucontext)
+ {
++    const auto self = reinterpret_cast<uint64_t>(pthread_self());
+     if (g_inCrashHandler.exchange(true))
+     {
+-        // Already handling a crash, abort immediately
++        // A fault inside the handler itself: give up.
++        if (g_crashThread.load() == self)
++        {
++            _exit(1);
++        }
++        // Another thread faulted at the same moment. Exiting here would cut the first report short and lose both stacks,
++        // so log this stack after the first one, then wait for the first thread to end the process (bounded).
++        for (int i = 0; i < 2000 && !g_firstReportDone.load(); ++i)
++        {
++            usleep(1000);
++        }
++        // One thread at a time: three threads faulted together on 11-01 and their reports came out mixed. Bounded, so a
++        // stuck report cannot hold this one back.
++        for (int i = 0; i < 2000 && g_reportLock.test_and_set(); ++i)
++        {
++            usleep(1000);
++        }
++        SafeReport(sig, info, ucontext);
++        g_reportLock.clear();
++        for (int i = 0; i < 60; ++i)
++        {
++            sleep(1);
++        }
+         _exit(1);
+     }
++    g_crashThread.store(self);
++
++    SafeReport(sig, info, ucontext);
++    g_firstReportDone.store(true);
+ 
+     const char* sigName = "UNKNOWN";
+     switch (sig)
+@@ -154,14 +303,9 @@ void AbortHandler()
+ }
+ } // namespace
+ 
+-void Initialize()
++void Reinstall()
+ {
+-    if (g_initialized.exchange(true))
+-    {
+-        return;
+-    }
+-
+-    // Install signal handlers
++    // Install (or re-install, after something else such as Steam's breakpad replaced them) the signal handlers.
+     struct sigaction sa;
+     std::memset(&sa, 0, sizeof(sa));
+     sa.sa_sigaction = SignalHandler;
+@@ -172,9 +316,23 @@ void Initialize()
+     sigaction(SIGBUS, &sa, nullptr);
+     sigaction(SIGILL, &sa, nullptr);
+     sigaction(SIGFPE, &sa, nullptr);
++}
+ 
+-    // Install abort handler
+-    std::atexit(AbortHandler);
++void Initialize()
++{
++    if (g_initialized.exchange(true))
++    {
++        return;
++    }
++
++    if (auto* app = App::Get(); app && app->GetPaths())
++    {
++        const auto path = app->GetPaths()->GetLogsDir() / L"crash_report.txt";
++        g_safeFd = open(path.string().c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
++    }
++    Reinstall();
++    // No atexit(AbortHandler): atexit also runs on a normal exit, which then printed a bogus "ABORT DETECTED".
++    (void)&AbortHandler;
+ }
+ 
+ std::string CaptureStackTrace(uint32_t maxDepth)
+diff --git a/src/dll/Platform/CrashHandler.hpp b/src/dll/Platform/CrashHandler.hpp
+index 9fbe242..260a255 100644
+--- a/src/dll/Platform/CrashHandler.hpp
++++ b/src/dll/Platform/CrashHandler.hpp
+@@ -11,6 +11,9 @@ namespace CrashHandler
+ // Initialize crash handlers (signal handlers, etc.)
+ void Initialize();
+ 
++// Re-install the signal handlers (e.g. once the game is running, after Steam's breakpad installed its own).
++void Reinstall();
++
+ // Capture current stack trace (up to maxDepth frames)
+ std::string CaptureStackTrace(uint32_t maxDepth = 32);
+ 
+diff --git a/src/dll/Platform/NativeHook.cpp b/src/dll/Platform/NativeHook.cpp
+index 3c73e4d..285fa19 100644
+--- a/src/dll/Platform/NativeHook.cpp
++++ b/src/dll/Platform/NativeHook.cpp
+@@ -356,9 +356,13 @@ kern_return_t ProtectExecutable(uintptr_t page)
+     return mach_vm_protect(mach_task_self(), page, PageSize(), FALSE, prot);
+ }
+ 
+-bool AllocateWindow(uintptr_t target, uint8_t** out, uintptr_t limit, int maxSteps, bool adrp)
++bool AllocateWindow(uintptr_t target, uint8_t** out, uintptr_t limit, int maxSteps, bool adrp, uintptr_t size = 0)
+ {
+     const uintptr_t page = PageSize();
++    if (size == 0)
++    {
++        size = page;
++    }
+     uintptr_t cursor = target > limit ? (target - limit) & ~(page - 1) : page;
+     const uintptr_t hi = target + limit;
+ 
+@@ -373,19 +377,21 @@ bool AllocateWindow(uintptr_t target, uint8_t** out, uintptr_t limit, int maxSte
+                                                 reinterpret_cast<vm_region_info_t>(&info), &count, &object);
+         const mach_vm_address_t gapEnd = kr == KERN_SUCCESS ? region : hi;
+         const mach_vm_address_t capped = gapEnd > hi ? hi : gapEnd;
+-        if (capped > cursor && capped - cursor >= page)
++        if (capped > cursor && capped - cursor >= size)
+         {
+             mach_vm_address_t hint = cursor;
+-            if (mach_vm_allocate(mach_task_self(), &hint, page, VM_FLAGS_FIXED) == KERN_SUCCESS)
++            if (mach_vm_allocate(mach_task_self(), &hint, size, VM_FLAGS_FIXED) == KERN_SUCCESS)
+             {
+                 const auto got = static_cast<uintptr_t>(hint);
+-                if (adrp ? InAdrpRange(target, got) : InBranchRange(target, got))
++                const auto last = got + size - page;
++                if (adrp ? InAdrpRange(target, got) && InAdrpRange(target, last)
++                         : InBranchRange(target, got) && InBranchRange(target, last))
+                 {
+                     *out = reinterpret_cast<uint8_t*>(hint);
+                     return true;
+                 }
+ 
+-                mach_vm_deallocate(mach_task_self(), hint, page);
++                mach_vm_deallocate(mach_task_self(), hint, size);
+             }
+         }
+ 
+@@ -406,13 +412,90 @@ bool AllocateWindow(uintptr_t target, uint8_t** out, uintptr_t limit, int maxSte
+     return false;
+ }
+ 
++// Trampoline page pool, reserved at the first hook (RED4ext's own, while the game is still loading) and used only when
++// the normal near/far allocation fails. Hooks attached later, often lazily from a worker thread (TweakXL's stat hooks),
++// need a free page within +-128 MiB or a region walk that finds one within +-4 GiB; once the game has mapped its heaps
++// around the image that failed now and then (kErrUnreachable, then TweakXL threw and the game aborted). Pool pages are
++// handed out once and never reused.
++constexpr size_t kPoolPages = 128;
++uintptr_t g_poolBase = 0;
++size_t g_poolNext = 0;
++bool g_poolOk[kPoolPages]{};
++bool g_poolTried = false;
++
++void ReservePool(uintptr_t target)
++{
++    if (g_poolTried)
++    {
++        return;
++    }
++    g_poolTried = true;
++
++    const uintptr_t size = kPoolPages * PageSize();
++    const uintptr_t nearLimit = (static_cast<uintptr_t>(1) << 25) * 4 - 4;
++    uint8_t* block = nullptr;
++    if (AllocateWindow(target, &block, nearLimit, 8192, false, size) ||
++        AllocateWindow(target, &block, (static_cast<uintptr_t>(1) << 32) - size, 16384, true, size))
++    {
++        // Re-create the block as one allocation per page at the same addresses, so a pool page is an independent VM
++        // entry exactly like a page from AllocateNear/AllocateFar (protection changes and region queries then see
++        // the same layout they always did). A page that can't be re-created is skipped.
++        g_poolBase = reinterpret_cast<uintptr_t>(block);
++        mach_vm_deallocate(mach_task_self(), g_poolBase, size);
++        for (size_t i = 0; i < kPoolPages; ++i)
++        {
++            mach_vm_address_t page = g_poolBase + i * PageSize();
++            g_poolOk[i] = mach_vm_allocate(mach_task_self(), &page, PageSize(), VM_FLAGS_FIXED) == KERN_SUCCESS;
++        }
++    }
++}
++
++bool TakePoolPage(uintptr_t target, bool adrp, uint8_t** out)
++{
++    while (g_poolBase != 0 && g_poolNext < kPoolPages && !g_poolOk[g_poolNext])
++    {
++        ++g_poolNext;
++    }
++    if (g_poolBase == 0 || g_poolNext >= kPoolPages)
++    {
++        return false;
++    }
++
++    const uintptr_t got = g_poolBase + g_poolNext * PageSize();
++    if (!(adrp ? InAdrpRange(target, got) : InBranchRange(target, got)))
++    {
++        return false;
++    }
++
++    ++g_poolNext;
++    *out = reinterpret_cast<uint8_t*>(got);
++    return true;
++}
++
++bool InPool(const uint8_t* page)
++{
++    const auto p = reinterpret_cast<uintptr_t>(page);
++    return g_poolBase != 0 && p >= g_poolBase && p < g_poolBase + kPoolPages * PageSize();
++}
++
+ bool AllocateNear(uintptr_t target, uint8_t** out)
+ {
++    ReservePool(target);
+     const uintptr_t limit = (static_cast<uintptr_t>(1) << 25) * 4 - 4;
+-    return AllocateWindow(target, out, limit, 8192, false);
++    // The pool is a fallback: pages are allocated as before while there is room, so behaviour only changes when the
++    // old path would have failed.
++    return AllocateWindow(target, out, limit, 8192, false) || TakePoolPage(target, false, out);
+ }
+ 
++bool AllocateFarFresh(uintptr_t target, uint8_t** out);
++
+ bool AllocateFar(uintptr_t target, uint8_t** out)
++{
++    ReservePool(target);
++    return AllocateFarFresh(target, out) || TakePoolPage(target, true, out);
++}
++
++bool AllocateFarFresh(uintptr_t target, uint8_t** out)
+ {
+     const uintptr_t page = PageSize();
+     mach_vm_address_t hint = 0;
+@@ -602,7 +685,7 @@ void Unlink(Site* site, Node* node)
+ 
+ void FreePage(uint8_t* page)
+ {
+-    if (page != nullptr)
++    if (page != nullptr && !InPool(page))
+     {
+         mach_vm_deallocate(mach_task_self(), reinterpret_cast<mach_vm_address_t>(page), PageSize());
+     }
+diff --git a/src/dll/States/RunningState.cpp b/src/dll/States/RunningState.cpp
+index 599fde7..1438859 100644
+--- a/src/dll/States/RunningState.cpp
++++ b/src/dll/States/RunningState.cpp
+@@ -2,6 +2,9 @@
+ #include "RunningState.hpp"
+ #include "App.hpp"
+ #include "GameStateHook.hpp"
++#ifdef RED4EXT_PLATFORM_MACOS
++#include "Platform/CrashHandler.hpp"
++#endif
+ 
+ namespace
+ {
+@@ -16,6 +19,9 @@ bool States::RunningState::OnEnter(RED4ext::CRunningState* aThis, RED4ext::CGame
+ 
+     auto result = CRunningState.OnEnter(aThis, aApp);
+     stateSystem->OnEnter(RED4ext::EGameStateType::Running, aApp);
++#ifdef RED4EXT_PLATFORM_MACOS
++    Platform::CrashHandler::Reinstall(); // Steam's breakpad installs its handlers during game initialization
++#endif
+ 
+     return result;
+ }
+diff --git a/src/dll/Systems/PluginSystem.cpp b/src/dll/Systems/PluginSystem.cpp
+index 1d49c3d..3c165e7 100644
+--- a/src/dll/Systems/PluginSystem.cpp
++++ b/src/dll/Systems/PluginSystem.cpp
+@@ -1,4 +1,7 @@
+ #include "PluginSystem.hpp"
++
++#include <algorithm>
++#include <cwctype>
+ #include "Addresses.hpp"
+ #include "Config.hpp"
+ #include "ESystemType.hpp"
+@@ -175,6 +178,17 @@ void PluginSystem::Startup()
+         }
+     }
+ 
++#ifdef RED4EXT_PLATFORM_MACOS
++    // Windows lists the plugins folder in case-insensitive name order, so that is the order plugins load (and register
++    // their types and hooks) there; APFS lists entries in no particular order. Sort the same way.
++    std::sort(pluginInfos.begin(), pluginInfos.end(), [](const PluginLoadInfo& aLeft, const PluginLoadInfo& aRight) {
++        auto left = aLeft.path.wstring(), right = aRight.path.wstring();
++        std::transform(left.begin(), left.end(), left.begin(), [](wchar_t c) { return std::towupper(c); });
++        std::transform(right.begin(), right.end(), right.begin(), [](wchar_t c) { return std::towupper(c); });
++        return left < right;
++    });
++#endif
++
+     // Load plugins after iterating with filesystem. Allow plugins to change their
+     // directory's structure without breaking loading of other plugins.
+     for (const auto& pluginInfo : pluginInfos)
+@@ -233,6 +247,9 @@ std::vector<PluginSystem::PluginName> PluginSystem::GetActivePlugins() const
+     for (const auto& [handle, plugin] : m_plugins)
+     {
+         plugins.emplace_back(plugin->GetName());
++        // Plugin logs are named after the plugin's file (LoggerSystem::Log), which can differ from its display name
++        // ("mod_settings" vs "Mod Settings"); without the file name the log rotation deleted those logs at startup.
++        plugins.emplace_back(plugin->GetPath().stem().wstring());
+     }
+     return plugins;
+ }
+diff --git a/tools/autotest/scenarios/cet-input-gate.reds b/tools/autotest/scenarios/cet-input-gate.reds
+new file mode 100644
+index 0000000..b48efaf
+--- /dev/null
++++ b/tools/autotest/scenarios/cet-input-gate.reds
+@@ -0,0 +1,57 @@
++module CpAutotest
++
++// CET overlay input gating in the world: while the overlay is open (toggle key 50 = kVK_ANSI_Grave, as bound in
++// bindings.json), key presses must not reach the game's input actions; after it closes they must again.
++public func CpRunMenuChecks(scenario: String) -> Void {}
++
++public func CpRunWorldStep(player: ref<PlayerPuppet>, step: Int32) -> Float {
++    switch step {
++        case 0:
++            player.cpGateLogger = new CpGateLogger();
++            player.RegisterInputListener(player.cpGateLogger);
++            return 2.0;
++        case 1:
++            player.cpGateLogger.count = 0;
++            CpReport("{\"event\":\"PRESS\",\"key\":49}");
++            return 2.0;
++        case 2:
++            CpCheck("baseline_space_reaches_game", player.cpGateLogger.count > 0, ToString(player.cpGateLogger.count));
++            CpReport("{\"event\":\"PRESS\",\"key\":50}");
++            return 3.0;
++        case 3:
++            player.cpGateLogger.count = 0;
++            CpReport("{\"event\":\"PRESS\",\"key\":49}");
++            return 1.0;
++        case 4:
++            CpReport("{\"event\":\"PRESS\",\"key\":13}"); // W
++            return 2.0;
++        case 5:
++            CpCheck("overlay_open_blocks_keys", player.cpGateLogger.count == 0, ToString(player.cpGateLogger.count));
++            CpShot("overlay-open");
++            CpReport("{\"event\":\"PRESS\",\"key\":50}");
++            return 3.0;
++        case 6:
++            player.cpGateLogger.count = 0;
++            CpReport("{\"event\":\"PRESS\",\"key\":49}");
++            return 2.0;
++        case 7:
++            CpCheck("overlay_closed_keys_reach_game", player.cpGateLogger.count > 0, ToString(player.cpGateLogger.count));
++            return 1.0;
++    }
++    return -1.0;
++}
++
++@addField(PlayerPuppet)
++public let cpGateLogger: ref<CpGateLogger>;
++
++public class CpGateLogger {
++    public let count: Int32;
++    protected cb func OnAction(action: ListenerAction, consumer: ListenerActionConsumer) -> Bool {
++        let t = ListenerAction.GetType(action);
++        if Equals(t, gameinputActionType.BUTTON_PRESSED) || Equals(t, gameinputActionType.BUTTON_RELEASED) {
++            this.count += 1;
++            CpReport("{\"event\":\"ACTION\",\"name\":\"" + NameToString(ListenerAction.GetName(action)) + "\"}");
++        }
++        return false;
++    }
++}
+diff --git a/tools/autotest/scenarios/codeware.reds b/tools/autotest/scenarios/codeware.reds
+new file mode 100644
+index 0000000..e6f2dc8
+--- /dev/null
++++ b/tools/autotest/scenarios/codeware.reds
+@@ -0,0 +1,57 @@
++module CpAutotest
++
++// Codeware (macOS port): main-menu checks of the core script APIs. Codeware's own scripts are staged by the runner.
++public func CpRunMenuChecks(scenario: String) -> Void {
++    let version = Codeware.Version();
++    CpCheck("codeware_version", StrLen(version) > 0, version);
++    CpCheck("codeware_require", Codeware.Require("1.20.0"), "");
++
++    let cls = Reflection.GetClass(n"PlayerPuppet");
++    CpCheck("reflection_get_class", IsDefined(cls), "");
++    if IsDefined(cls) {
++        CpCheck("reflection_parent", IsDefined(cls.GetParent()), NameToString(cls.GetParent().GetName()));
++        let funcs = cls.GetFunctions();
++        CpCheck("reflection_functions", ArraySize(funcs) > 100, ToString(ArraySize(funcs)));
++        CpCheck("reflection_property", IsDefined(Reflection.GetClass(n"gameObject").GetProperty(n"uiSlotComponent"))
++            || ArraySize(Reflection.GetClass(n"gameObject").GetProperties()) > 0, "");
++    }
++    let en = Reflection.GetEnum(n"gamedataStatType");
++    let consts: array<ref<ReflectionConst>>;
++    if IsDefined(en) { consts = en.GetConstants(); }
++    CpCheck("reflection_enum", ArraySize(consts) > 100, ToString(ArraySize(consts)));
++    CpCheck("reflection_global_function", IsDefined(Reflection.GetGlobalFunction(n"InitializeScripts;")), "");
++    let derived = Reflection.GetDerivedClasses(n"gameObject");
++    let allClasses = Reflection.GetClasses();
++    CpCheck("reflection_classes", ArraySize(allClasses) > 10000, ToString(ArraySize(allClasses)));
++    CpCheck("reflection_derived", ArraySize(derived) > 3, ToString(ArraySize(derived)));
++
++    let callbacks = GameInstance.GetCallbackSystem();
++    CpCheck("callback_system", IsDefined(callbacks), "");
++    if IsDefined(callbacks) {
++        let target = new CpAutotestCwTarget();
++        callbacks.RegisterEvent(n"CpAutotest/Ping");
++        callbacks.RegisterCallback(n"CpAutotest/Ping", target, n"OnPing");
++        callbacks.DispatchEventAs(n"CpAutotest/Ping", new CpAutotestCwEvent());
++        CpCheck("callback_dispatch", target.hits == 1, ToString(target.hits));
++    }
++
++    CpCheck("service_container", IsDefined(GameInstance.GetScriptableServiceContainer()), "");
++    let svc = GameInstance.GetScriptableServiceContainer().GetService(n"CpAutotest.CpAutotestCwService") as CpAutotestCwService;
++    CpCheck("scriptable_service_lifecycle", IsDefined(svc) && svc.loaded, IsDefined(svc) ? ToString(svc.loaded) : "null");
++}
++
++public class CpAutotestCwEvent extends CallbackSystemEvent {}
++
++public class CpAutotestCwTarget {
++    public let hits: Int32;
++    public cb func OnPing(evt: ref<CallbackSystemEvent>) {
++        this.hits += 1;
++    }
++}
++
++public class CpAutotestCwService extends ScriptableService {
++    public let loaded: Bool;
++    private cb func OnLoad() {
++        this.loaded = true;
++    }
++}
+diff --git a/tools/cp-dev b/tools/cp-dev
+index 116a763..1adb719 100755
+--- a/tools/cp-dev
++++ b/tools/cp-dev
+@@ -39,11 +39,11 @@ mkdir -p "$R4E_DIR/bin/x64" "$R4E_DIR/plugins"
+ install -m 755 "$BUILD/libs/RED4ext.dylib" "$R4E_DIR/RED4ext.dylib"
+ "$ROOT/scripts/codesign_macos.sh" dylib "$R4E_DIR/RED4ext.dylib"
+ install -m 755 "$BUILD/bin/red4ext_plugin_check" "$R4E_DIR/bin/red4ext_plugin_check"
+-cp "$ROOT/deps/red4ext.sdk/cyberpunk2077_addresses.json" "$R4E_DIR/bin/x64/cyberpunk2077_addresses.json"
++cp "$WS/RED4ext.SDK/cyberpunk2077_addresses.json" "$R4E_DIR/bin/x64/cyberpunk2077_addresses.json"
+ rm -f "$R4E_DIR/cyberpunk2077_addresses.json" "$R4E_DIR/bin/x64/cyberpunk2077_addresses.loader.json"
+ 
+ # name:repo:built dylib:script dir (or -):data dir installed as the plugin's Data/ (or -)[:bundle dirs installed as Bundle/]
+-PLUGIN_TABLE="ArchiveXL:cp2077-archive-xl-macos:ArchiveXL.dylib:scripts:-:bundle/source/resources+bundle/packed/archive/pc/mod TweakXL:cp2077-tweak-xl:TweakXL.dylib:scripts:data ModMenu:cp2077-modmenu:libModMenu.dylib:scripts/Scripts/ModMenu:-"
++PLUGIN_TABLE="ArchiveXL:cp2077-archive-xl-macos:ArchiveXL.dylib:scripts:-:bundle/source/resources+bundle/packed/archive/pc/mod TweakXL:cp2077-tweak-xl:TweakXL.dylib:scripts:data ModMenu:cp2077-modmenu:libModMenu.dylib:scripts/Scripts/ModMenu:- Codeware:cp2077-codeware-mac:Codeware.dylib:scripts:data CyberEngineTweaks:cet-mac:CyberEngineTweaks.dylib:-:-"
+ for entry in $PLUGIN_TABLE; do
+     IFS=: read -r name repo lib scripts data bundle <<<"$entry"
+     [[ ",$PLUGINS," == *",$name,"* ]] || continue
+@@ -57,6 +57,12 @@ for entry in $PLUGIN_TABLE; do
+         rm -rf "$GAME_DIR/r6/scripts/$name" "$R4E_DIR/plugins/$name/Scripts"
+         cp -R "$WS/$repo/$scripts" "$R4E_DIR/plugins/$name/Scripts"
+         rm -rf "$R4E_DIR/plugins/$name/Scripts/r6" # game files, installed below
++        # macOS-only exclusions (scripts the Mac game's script bundle cannot compile), one relative path per line.
++        if [[ -f "$WS/$repo/macos/scripts-exclude.txt" ]]; then
++            grep -vE '^\s*(#|$)' "$WS/$repo/macos/scripts-exclude.txt" | while read -r rel; do
++                rm -f "$R4E_DIR/plugins/$name/Scripts/$rel"
++            done
++        fi
+     fi
+     # Plugin-provided game files (e.g. input bindings for inputloader.pl in r6/input).
+     if [[ -d "$WS/$repo/scripts/r6" ]]; then
+diff --git a/tools/cp-run b/tools/cp-run
+index 17e60ba..c01689a 100755
+--- a/tools/cp-run
++++ b/tools/cp-run
+@@ -54,7 +54,7 @@ die() { say "PRECONDITION: $*"; exit 2; }
+ [[ -x "$GAME_BIN" ]] || die "game binary not found: $GAME_BIN"
+ [[ -f "$R4E_DIR/RED4ext.dylib" ]] || die "RED4ext.dylib not installed in $R4E_DIR (run tools/cp-dev)"
+ pgrep -x Cyberpunk2077 >/dev/null && die "the game is already running"
+-codesign -d --entitlements - "$GAME_BIN" 2>/dev/null | grep -q allow-unsigned-executable-memory ||
++[[ "${CP_ALLOW_STOCK:-0}" == 1 ]] || codesign -d --entitlements - "$GAME_BIN" 2>/dev/null | grep -q allow-unsigned-executable-memory ||
+     die "game binary lacks allow-unsigned-executable-memory; run: scripts/codesign_macos.sh exe \"$GAME_BIN\""
+ # Steam is deliberately not started: launching it (signed out) pops a login window, and the game runs without it.
+ 
+@@ -103,6 +103,10 @@ for g in d["data"]:
+                 v, i = v.rsplit("@", 1)
+                 o["index"] = int(i)
+             o["value"] = v
++        # Test runs are silent (the user hears them otherwise); CP_SOUND=1 keeps the user's volume. Restored on exit
++        # with the rest of UserSettings.json.
++        if g["group_name"] == "/audio/volume" and o["name"] == "MasterVolume" and os.environ.get("CP_SOUND") != "1":
++            o["value"] = 0
+         if g["group_name"] == "/video/display" and o["name"] == "WindowMode":
+             o["value"], o["index"] = "Windowed", 0
+         if g["group_name"] == "/video/display" and o["name"] == "Resolution":
+@@ -212,9 +216,11 @@ if [[ "$PLUGINS_ENABLED" == true && "$SCENARIO" != rttidump ]]; then
+         mkdir -p "$STAGE" && cp -R "$R4E_DIR/plugins/$name/Scripts" "$STAGE/$name"
+     done
+ fi
+-[[ -x "$GAME_DIR/engine/tools/scc" ]] && "$GAME_DIR/engine/tools/scc" -compile "$GAME_DIR/r6/scripts" >"$RUN_DIR/scc.log" 2>&1 || true
++SCC_RC=0
++[[ -x "$GAME_DIR/engine/tools/scc" ]] && { REDSCRIPT_NO_POPUP=1 "$GAME_DIR/engine/tools/scc" -compile "$GAME_DIR/r6/scripts" >"$RUN_DIR/scc.log" 2>&1 || SCC_RC=$?; }
+ # Never launch into the game's "REDscript compilation has failed" dialog: fail the run with the compiler errors.
+-if grep -q "Compilation failed" "$RUN_DIR/scc.log" 2>/dev/null; then
++# (scc prints "REDScript compilation has failed." and exits non-zero.)
++if [[ $SCC_RC -ne 0 ]]; then
+     grep -A3 "^\[ERROR" "$RUN_DIR/scc.log" | head -40
+     say "FAIL $SCENARIO: redscript compilation failed (see $RUN_DIR/scc.log)"
+     exit 1
+@@ -319,10 +325,11 @@ while kill -0 "$GAME_PID" 2>/dev/null; do
+         OUTCOME=results
+         # CP_WORLD_HOLD=N keeps the game running N more seconds, with a screenshot before and after;
+         # CP_KEYCODE=<macOS virtual key code> presses that key in between.
++        # CP_HOLD_AFTER=N keeps it running N seconds after that key (default 3).
+         if [[ -n "${CP_WORLD_HOLD:-}" ]]; then
+             sleep "$CP_WORLD_HOLD"
+             shot hold-before
+-            if [[ -n "${CP_KEYCODE:-}" ]]; then press_key "$CP_KEYCODE"; sleep 3; shot hold-after; fi
++            if [[ -n "${CP_KEYCODE:-}" ]]; then press_key "$CP_KEYCODE"; sleep "${CP_HOLD_AFTER:-3}"; shot hold-after; fi
+         else
+             sleep 2
+         fi

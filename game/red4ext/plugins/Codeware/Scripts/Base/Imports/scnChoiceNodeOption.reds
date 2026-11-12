@@ -1,0 +1,19 @@
+public native struct scnChoiceNodeOption {
+  public native let screenplayOptionId: scnscreenplayItemId;
+  public native let caption: CName;
+  public native let blueline: Bool;
+  public native let isFixedAsRead: Bool;
+  public native let isSingleChoice: Bool;
+  public native let type: ChoiceTypeWrapper;
+  public native let timedParams: ref<scnChoiceNodeNsTimedParams>;
+  public native let questCondition: ref<questIBaseCondition>;
+  public native let triggerCondition: ref<questIBaseCondition>;
+  public native let bluelineCondition: ref<questIBaseCondition>;
+  public native let emphasisCondition: ref<questIBaseCondition>;
+  public native let iconCondition: ref<questIBaseCondition>;
+  public native let gameplayAction: TweakDBID;
+  public native let iconTagIds: array<TweakDBID>;
+  public native let exDataFlags: Uint32;
+  public native let mappinReferencePointId: scnReferencePointId;
+  public native let timedCondition: ref<scnTimedCondition>;
+}

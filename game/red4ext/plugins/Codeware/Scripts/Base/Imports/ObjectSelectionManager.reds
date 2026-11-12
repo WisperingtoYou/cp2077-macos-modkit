@@ -1,0 +1,1 @@
+public importonly class ObjectSelectionManager extends AIObjectSelectionManagerInterface {}

@@ -1,0 +1,33 @@
+public native class PanzerGameLogicController extends MinigameLogicControllerAdvanced {
+  public native let gameOverDelay: Float;
+  public native let mainMenuLibraryName: CName;
+  public native let scoreboardLibraryName: CName;
+  public native let panelsLayer: CName;
+  public native let gameLayer: CName;
+  public native let cloudsLayer: CName;
+  public native let backgroundLibraryName: CName;
+  public native let cloudsLibraryNames: array<CName>;
+  public native let minCloudSpawnInterval: Float;
+  public native let maxCloudSpawnInterval: Float;
+  public native let minCloudSpeed: Float;
+  public native let maxCloudSpeed: Float;
+  public native let scoreCounter: inkTextRef;
+  public native let livesCounter: inkTextRef;
+  public native let moveUpKey: CName;
+  public native let moveDownKey: CName;
+  public native let moveLeftKey: CName;
+  public native let moveRightKey: CName;
+  public native let shootKey: CName;
+  public native let backKey: CName;
+  public native let submitKey: CName;
+  public native let axisDeadZone: Float;
+  public native let moveXAxis: CName;
+  public native let moveYAxis: CName;
+  public native let shootAxis: CName;
+  public native let droneLibraryName: CName;
+  public native let minDroneSpawnInterval: Float;
+  public native let maxDroneSpawnInterval: Float;
+  public native let avLibraryName: CName;
+  public native let minAvSpawnInterval: Float;
+  public native let maxAvSpawnInterval: Float;
+}

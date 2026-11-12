@@ -1,0 +1,20 @@
+public native struct physicsclothRuntimeInfo {
+  public native let translation: Vector3;
+  public native let rotation: Quaternion;
+  public native let gravity: Vector3;
+  public native let damping: Float;
+  public native let drag: Float;
+  public native let inertia: Float;
+  public native let numSolverIterations: Uint32;
+  public native let stiffnessFrequency: Float;
+  public native let friction: Float;
+  public native let tetherStiffness: Float;
+  public native let tetherScale: Float;
+  public native let selfCollisionDistance: Float;
+  public native let selfCollisionStiffness: Float;
+  public native let liftCoefficient: Float;
+  public native let dragCoefficient: Float;
+  public native let gravityScale: Float;
+  public native let motionConstraintStiffness: Float;
+  public native let enableSelfCollision: Bool;
+}

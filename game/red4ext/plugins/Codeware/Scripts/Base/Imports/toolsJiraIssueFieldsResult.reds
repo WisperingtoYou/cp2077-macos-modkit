@@ -1,0 +1,37 @@
+public native struct toolsJiraIssueFieldsResult {
+  public native let project: String;
+  public native let summary: String;
+  public native let issuetype: String;
+  public native let priority: String;
+  public native let labels: String;
+  public native let assignee: String;
+  public native let description: String;
+  public native let versions: String;
+  public native let fixVersions: String;
+  public native let flagPosition: String;
+  public native let components: String;
+  public native let attachments: array<toolsJiraAttachment>;
+  public native let customfield_17400: String;
+  public native let customfield_18373: String;
+  public native let customfield_34100: String;
+  public native let customfield_15306: String;
+  public native let customfield_13009: String;
+  public native let customfield_10013: String;
+  public native let customfield_10503: String;
+  public native let customfield_10502: String;
+  public native let customfield_34718: String;
+  public native let customfield_36106: String;
+  public native let customfield_10006: String;
+  public native let customfield_10505: String;
+  public native let customfield_10603: String;
+  public native let customfield_24700: String;
+  public native let customfield_34706: String;
+  public native let customfield_25500: String;
+  public native let customfield_15808: String;
+  public native let customfield_33701: String;
+  public native let customfield_18006: String;
+  public native let customfield_29900: String;
+  public native let customfield_10005: String;
+  public native let customfield_10606: String;
+  public native let customfield_10002: String;
+}

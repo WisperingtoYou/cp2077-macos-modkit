@@ -1,0 +1,21 @@
+public native struct audioVehicleMechanicalData {
+  public native let engineStartEvent: CName;
+  public native let engineStopEvent: CName;
+  public native let gearUpBeginEvent: CName;
+  public native let gearUpEndEvent: CName;
+  public native let gearDownBeginEvent: CName;
+  public native let gearDownEndEvent: CName;
+  public native let throttleOnEvent: CName;
+  public native let throttleOffEvent: CName;
+  public native let suspensionSqueekEvent: CName;
+  public native let fullThrottleAppliedEvent: CName;
+  public native let acelleration: CName;
+  public native let speed: CName;
+  public native let gear: CName;
+  public native let brake: CName;
+  public native let rpm: CName;
+  public native let throttle: CName;
+  public native let sidewaysThrottle: CName;
+  public native let thrust: CName;
+  public native let temperature: CName;
+}

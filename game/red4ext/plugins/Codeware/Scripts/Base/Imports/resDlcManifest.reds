@@ -1,0 +1,20 @@
+public native class resDlcManifest extends CResource {
+  public native let tweakBlob: ResourceAsyncRef; // raRef<CResource>
+  public native let quest: ResourceAsyncRef; // raRef<CResource>
+  public native let journal: ResourceAsyncRef; // raRef<CResource>
+  public native let factories: ResourceAsyncRef; // raRef<CResource>
+  public native let weaponAppearances: ResourceAsyncRef; // raRef<CResource>
+  public native let vehicleAppearances: ResourceAsyncRef; // raRef<CResource>
+  public native let communitySpawnsets: ResourceAsyncRef; // raRef<CResource>
+  public native let archetypeSet: ResourceAsyncRef; // raRef<CResource>
+  public native let vehicleCovers: ResourceAsyncRef; // raRef<CResource>
+  public native let cookedAudioMetadata: ResourceAsyncRef; // raRef<CResource>
+  public native let voiceTags: ResourceAsyncRef; // raRef<CResource>
+  public native let widgetsLibrariesOverrides: ResourceAsyncRef; // raRef<CResource>
+  public native let gameDefsList: ResourceAsyncRef; // raRef<CResource>
+  public native let cookedMultilayerSetup: ResourceAsyncRef; // raRef<CResource>
+  public native let visualTagsToAppearanceNames: ResourceAsyncRef; // raRef<CResource>
+  public native let appearanceNameToVisualTags: ResourceAsyncRef; // raRef<CResource>
+  public native let defaultAppearances: ResourceAsyncRef; // raRef<CResource>
+  public native let colorVariantsMap: ResourceAsyncRef; // raRef<CResource>
+}

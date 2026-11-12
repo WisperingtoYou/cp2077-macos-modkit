@@ -1,0 +1,1361 @@
+Upstream: https://github.com/jackmaxwil/RED4ext.SDK-macos
+Base commit: 7e104249adc88d8922c79918f916139aaf5895ac
+Apply: git -C <checkout of that commit> apply RED4ext.SDK.diff
+
+diff --git a/cyberpunk2077_addresses.json b/cyberpunk2077_addresses.json
+index 58b7bd70..c1a46096 100644
+--- a/cyberpunk2077_addresses.json
++++ b/cyberpunk2077_addresses.json
+@@ -3,10 +3,10 @@
+   "game_version": "2.3.1",
+   "uuid": "A6656ADC-FBE2-36A4-9B9D-B4A9DE645089",
+   "stats": {
+-    "total": 674,
+-    "resolved": 670,
++    "total": 787,
++    "resolved": 783,
+     "unresolved": 4,
+-    "verified": 583
++    "verified": 719
+   },
+   "Addresses": [
+     {
+@@ -55,7 +55,8 @@
+     },
+     {
+       "hash": "68817558",
+-      "offset": "1:0x2214898"
++      "offset": "1:0x21A3BC0",
++      "verified": true
+     },
+     {
+       "hash": "69014212",
+@@ -108,7 +109,8 @@
+     },
+     {
+       "hash": "364779332",
+-      "offset": "1:0x22EEC0"
++      "offset": "1:0x21AFE0C",
++      "verified": true
+     },
+     {
+       "hash": "368188783",
+@@ -141,7 +143,8 @@
+     },
+     {
+       "hash": "422530722",
+-      "offset": "1:0x2000100"
++      "offset": "1:0x3D95924",
++      "verified": true
+     },
+     {
+       "hash": "434901863",
+@@ -158,7 +161,8 @@
+     },
+     {
+       "hash": "489494088",
+-      "offset": "1:0xD4DC20"
++      "offset": "1:0xCA41E0",
++      "verified": true
+     },
+     {
+       "hash": "503977943",
+@@ -191,7 +195,8 @@
+     },
+     {
+       "hash": "566894273",
+-      "offset": "1:0x21B13AC"
++      "offset": "1:0x21A3D4C",
++      "verified": true
+     },
+     {
+       "hash": "586028847",
+@@ -212,7 +217,8 @@
+     },
+     {
+       "hash": "633871992",
+-      "offset": "1:0x1C5226C"
++      "offset": "1:0xC6C0C4",
++      "verified": true
+     },
+     {
+       "hash": "677908004",
+@@ -300,7 +306,8 @@
+     },
+     {
+       "hash": "898639042",
+-      "offset": "1:0x3D96BF4"
++      "offset": "1:0x21FBF90",
++      "verified": true
+     },
+     {
+       "hash": "914361828",
+@@ -327,7 +334,8 @@
+     },
+     {
+       "hash": "1087575974",
+-      "offset": "1:0x2213FD4"
++      "offset": "1:0x21A39B0",
++      "verified": true
+     },
+     {
+       "hash": "1092645213",
+@@ -417,11 +425,13 @@
+     },
+     {
+       "hash": "1303056161",
+-      "offset": "1:0x2D9766C"
++      "offset": "1:0x21B99A8",
++      "verified": true
+     },
+     {
+       "hash": "1350901460",
+-      "offset": "1:0x21AC670"
++      "offset": "1:0x2259888",
++      "verified": true
+     },
+     {
+       "hash": "1365841885",
+@@ -544,7 +554,8 @@
+     },
+     {
+       "hash": "1693194103",
+-      "offset": "1:0x3DA0574"
++      "offset": "1:0x491DDB0",
++      "verified": true
+     },
+     {
+       "hash": "1697201926",
+@@ -568,7 +579,8 @@
+     },
+     {
+       "hash": "1828854026",
+-      "offset": "1:0x1443324"
++      "offset": "1:0xC417F0",
++      "verified": true
+     },
+     {
+       "hash": "1833321597",
+@@ -653,7 +665,8 @@
+     },
+     {
+       "hash": "2182550867",
+-      "offset": "1:0xCCEDEC"
++      "offset": "1:0xC9E0E0",
++      "verified": false
+     },
+     {
+       "hash": "2193429752",
+@@ -681,7 +694,8 @@
+     },
+     {
+       "hash": "2263681375",
+-      "offset": "1:0x15EDE88"
++      "offset": "1:0xC996C0",
++      "verified": true
+     },
+     {
+       "hash": "2272530537",
+@@ -727,7 +741,8 @@
+     },
+     {
+       "hash": "2396396482",
+-      "offset": "1:0x3228"
++      "offset": "1:0x21B01E0",
++      "verified": true
+     },
+     {
+       "hash": "2399343890",
+@@ -762,7 +777,8 @@
+     },
+     {
+       "hash": "2515274237",
+-      "offset": "1:0xCF5E98"
++      "offset": "1:0xC999E0",
++      "verified": true
+     },
+     {
+       "hash": "2515346652",
+@@ -862,7 +878,8 @@
+     },
+     {
+       "hash": "2757309857",
+-      "offset": "1:0x22F04C"
++      "offset": "1:0x21AFED4",
++      "verified": true
+     },
+     {
+       "hash": "2770550105",
+@@ -916,7 +933,8 @@
+     },
+     {
+       "hash": "2930319133",
+-      "offset": "1:0x3228"
++      "offset": "1:0x21B007C",
++      "verified": true
+     },
+     {
+       "hash": "2954893634",
+@@ -1039,7 +1057,8 @@
+     },
+     {
+       "hash": "3490519617",
+-      "offset": "1:0x3641A50"
++      "offset": "1:0xC985EC",
++      "verified": true
+     },
+     {
+       "hash": "3491501770",
+@@ -1088,7 +1107,8 @@
+     },
+     {
+       "hash": "3596356635",
+-      "offset": "1:0xCC45EC"
++      "offset": "1:0xC992C4",
++      "verified": true
+     },
+     {
+       "hash": "3602585178",
+@@ -1169,7 +1189,8 @@
+     },
+     {
+       "hash": "3832485534",
+-      "offset": "1:0x22EEAC"
++      "offset": "1:0x21AFD4C",
++      "verified": true
+     },
+     {
+       "hash": "3836349613",
+@@ -1288,11 +1309,13 @@
+     },
+     {
+       "hash": "4248638169",
+-      "offset": "1:0x180C9D8"
++      "offset": "1:0xC99368",
++      "verified": true
+     },
+     {
+       "hash": "4254156293",
+-      "offset": "1:0x1FFFF8C"
++      "offset": "1:0x3D95800",
++      "verified": true
+     },
+     {
+       "hash": "4275058446",
+@@ -1301,7 +1324,8 @@
+     },
+     {
+       "hash": "4285205681",
+-      "offset": "1:0x3C3D48"
++      "offset": "1:0x2D80",
++      "verified": true
+     },
+     {
+       "hash": "4292220681",
+@@ -3287,6 +3311,571 @@
+       "hash": "1391946771",
+       "offset": "1:0x6B40E60",
+       "verified": true
++    },
++    {
++      "hash": "1559305924",
++      "offset": "1:0x1F42944",
++      "verified": true
++    },
++    {
++      "hash": "4007601841",
++      "offset": "1:0x3F0D900",
++      "verified": true
++    },
++    {
++      "hash": "1559565515",
++      "offset": "1:0x14AD374",
++      "verified": true
++    },
++    {
++      "hash": "3151104823",
++      "offset": "3:0x1C77408",
++      "verified": true
++    },
++    {
++      "hash": "525805301",
++      "offset": "1:0x378A7E8",
++      "verified": true
++    },
++    {
++      "hash": "3068279668",
++      "offset": "1:0xCDD130",
++      "verified": true
++    },
++    {
++      "hash": "552341017",
++      "offset": "1:0xCE0D28",
++      "verified": true
++    },
++    {
++      "hash": "4792499",
++      "offset": "1:0x48DC344",
++      "verified": true
++    },
++    {
++      "hash": "2050958960",
++      "offset": "1:0x48DB648",
++      "verified": true
++    },
++    {
++      "hash": "2671382832",
++      "offset": "1:0x47CF584",
++      "verified": true
++    },
++    {
++      "hash": "1159862457",
++      "offset": "1:0x47CF720",
++      "verified": true
++    },
++    {
++      "hash": "3589084925",
++      "offset": "1:0x47CF848",
++      "verified": true
++    },
++    {
++      "hash": "2635337807",
++      "offset": "3:0x19C9830",
++      "verified": true
++    },
++    {
++      "hash": "4284882427",
++      "offset": "1:0x4887524",
++      "verified": true
++    },
++    {
++      "hash": "1667176558",
++      "offset": "1:0x49ADE28",
++      "verified": true
++    },
++    {
++      "hash": "2516523266",
++      "offset": "1:0x49B18F0",
++      "verified": true
++    },
++    {
++      "hash": "492509908",
++      "offset": "1:0x49B888C",
++      "verified": true
++    },
++    {
++      "hash": "3558023194",
++      "offset": "1:0x49A3084",
++      "verified": true
++    },
++    {
++      "hash": "3491172781",
++      "offset": "1:0x3340CF8",
++      "verified": true
++    },
++    {
++      "hash": "1944983789",
++      "offset": "1:0x2161438",
++      "verified": true
++    },
++    {
++      "hash": "3442350580",
++      "offset": "1:0x1F8DFFC",
++      "verified": true
++    },
++    {
++      "hash": "2394822845",
++      "offset": "1:0x4092830",
++      "verified": true
++    },
++    {
++      "hash": "2050111212",
++      "offset": "1:0x3FD4D70",
++      "verified": true
++    },
++    {
++      "hash": "803085170",
++      "offset": "1:0x42EAF14",
++      "verified": true
++    },
++    {
++      "hash": "779107884",
++      "offset": "1:0x2CFB178",
++      "verified": true
++    },
++    {
++      "hash": "3227858325",
++      "offset": "1:0x2CFD644",
++      "verified": true
++    },
++    {
++      "hash": "3144298192",
++      "offset": "1:0x2EFA150",
++      "verified": true
++    },
++    {
++      "hash": "2996308699",
++      "offset": "1:0x16A38D4",
++      "verified": true
++    },
++    {
++      "hash": "2288918343",
++      "offset": "1:0x21B4AB8",
++      "verified": true
++    },
++    {
++      "hash": "2840271332",
++      "offset": "1:0xD13C5C",
++      "verified": true
++    },
++    {
++      "hash": "3878623943",
++      "offset": "1:0xD14084",
++      "verified": true
++    },
++    {
++      "hash": "1576214475",
++      "offset": "1:0xD25E50",
++      "verified": true
++    },
++    {
++      "hash": "1737563910",
++      "offset": "1:0xD25E58",
++      "verified": true
++    },
++    {
++      "hash": "1471948702",
++      "offset": "1:0xD5AEE0",
++      "verified": true
++    },
++    {
++      "hash": "2679119876",
++      "offset": "1:0xD5AA60",
++      "verified": true
++    },
++    {
++      "hash": "2334794340",
++      "offset": "1:0xD5C384",
++      "verified": true
++    },
++    {
++      "hash": "1821516328",
++      "offset": "1:0xD597A8",
++      "verified": true
++    },
++    {
++      "hash": "3993832650",
++      "offset": "1:0x21ECFD8",
++      "verified": true
++    },
++    {
++      "hash": "2070546748",
++      "offset": "1:0x2252EF4",
++      "verified": true
++    },
++    {
++      "hash": "4224523662",
++      "offset": "1:0x21FD144",
++      "verified": true
++    },
++    {
++      "hash": "560604283",
++      "offset": "1:0x21FCFB8",
++      "verified": true
++    },
++    {
++      "hash": "3961524856",
++      "offset": "1:0xDC8D0C",
++      "verified": true
++    },
++    {
++      "hash": "1239092911",
++      "offset": "1:0x20CDE7C",
++      "verified": true
++    },
++    {
++      "hash": "1875775378",
++      "offset": "1:0x20CE358",
++      "verified": true
++    },
++    {
++      "hash": "1159928678",
++      "offset": "1:0x124FE1C",
++      "verified": true
++    },
++    {
++      "hash": "673454961",
++      "offset": "1:0x48842E0",
++      "verified": true
++    },
++    {
++      "hash": "2788222225",
++      "offset": "1:0x4866EC8",
++      "verified": true
++    },
++    {
++      "hash": "2681889087",
++      "offset": "1:0x488C410",
++      "verified": true
++    },
++    {
++      "hash": "1543273776",
++      "offset": "1:0x49A31D4",
++      "verified": true
++    },
++    {
++      "hash": "4290286529",
++      "offset": "1:0xC9E0E0",
++      "verified": true
++    },
++    {
++      "hash": "3887528355",
++      "offset": "1:0xCA711C",
++      "verified": true
++    },
++    {
++      "hash": "1146243713",
++      "offset": "1:0x1251EB4",
++      "verified": true
++    },
++    {
++      "hash": "953659461",
++      "offset": "1:0x12D9B80",
++      "verified": true
++    },
++    {
++      "hash": "1883248814",
++      "offset": "1:0x12E6F44",
++      "verified": true
++    },
++    {
++      "hash": "3455393801",
++      "offset": "1:0x22111F8",
++      "verified": true
++    },
++    {
++      "hash": "2135235617",
++      "offset": "1:0x22112D8",
++      "verified": true
++    },
++    {
++      "hash": "3222609133",
++      "offset": "1:0x22113B8",
++      "verified": true
++    },
++    {
++      "hash": "1663049434",
++      "offset": "1:0x2211498",
++      "verified": true
++    },
++    {
++      "hash": "2841780134",
++      "offset": "1:0x22116C8",
++      "verified": true
++    },
++    {
++      "hash": "3515162577",
++      "offset": "1:0x2B79D10",
++      "verified": true
++    },
++    {
++      "hash": "3442875632",
++      "offset": "1:0x21E897C",
++      "verified": true
++    },
++    {
++      "hash": "160045886",
++      "offset": "1:0x217844C",
++      "verified": true
++    },
++    {
++      "hash": "887623293",
++      "offset": "1:0x3D69C44",
++      "verified": true
++    },
++    {
++      "hash": "1592528795",
++      "offset": "1:0xB388D4",
++      "verified": true
++    },
++    {
++      "hash": "4233370276",
++      "offset": "1:0x3D8C0CC",
++      "verified": true
++    },
++    {
++      "hash": "2447710505",
++      "offset": "1:0x3D8D710",
++      "verified": true
++    },
++    {
++      "hash": "3592689218",
++      "offset": "1:0x3D8D820",
++      "verified": true
++    },
++    {
++      "hash": "4069332669",
++      "offset": "1:0x3D8D94C",
++      "verified": true
++    },
++    {
++      "hash": "3702071356",
++      "offset": "1:0x1D796B4",
++      "verified": true
++    },
++    {
++      "hash": "4196866905",
++      "offset": "1:0x1D7923C",
++      "verified": true
++    },
++    {
++      "hash": "647509972",
++      "offset": "2:0x1B45F0",
++      "verified": true
++    },
++    {
++      "hash": "3781755204",
++      "offset": "1:0x1D735A4",
++      "verified": true
++    },
++    {
++      "hash": "1325863745",
++      "offset": "1:0x48039B4",
++      "verified": true
++    },
++    {
++      "hash": "687159926",
++      "offset": "1:0x3E9CD24",
++      "verified": true
++    },
++    {
++      "hash": "3450936590",
++      "offset": "1:0xA86010",
++      "verified": true
++    },
++    {
++      "hash": "3531087134",
++      "offset": "1:0xA861D8",
++      "verified": true
++    },
++    {
++      "hash": "352853482",
++      "offset": "1:0xA8976C",
++      "verified": true
++    },
++    {
++      "hash": "52566656",
++      "offset": "1:0xC9AC40",
++      "verified": true
++    },
++    {
++      "hash": "1585257392",
++      "offset": "1:0xC9AE7C",
++      "verified": true
++    },
++    {
++      "hash": "2148541576",
++      "offset": "1:0x1F9157C",
++      "verified": true
++    },
++    {
++      "hash": "3659539819",
++      "offset": "1:0x1F91868",
++      "verified": true
++    },
++    {
++      "hash": "2715557778",
++      "offset": "1:0x3C00790",
++      "verified": true
++    },
++    {
++      "hash": "4033159285",
++      "offset": "1:0x3C00A54",
++      "verified": true
++    },
++    {
++      "hash": "2595759321",
++      "offset": "1:0x23B6188",
++      "verified": true
++    },
++    {
++      "hash": "2418220865",
++      "offset": "1:0x25D0CF8",
++      "verified": true
++    },
++    {
++      "hash": "1542136228",
++      "offset": "1:0x47CAC28",
++      "verified": true
++    },
++    {
++      "hash": "3363774471",
++      "offset": "1:0x47D35E0",
++      "verified": true
++    },
++    {
++      "hash": "3921223769",
++      "offset": "1:0x49300D4",
++      "verified": true
++    },
++    {
++      "hash": "1453924746",
++      "offset": "1:0x4930374",
++      "verified": true
++    },
++    {
++      "hash": "3572571507",
++      "offset": "1:0x35494E8",
++      "verified": true
++    },
++    {
++      "hash": "1497764821",
++      "offset": "1:0xDE1D64",
++      "verified": true
++    },
++    {
++      "hash": "4018084407",
++      "offset": "1:0xDE1ED4",
++      "verified": true
++    },
++    {
++      "hash": "2846497959",
++      "offset": "1:0xDE2088",
++      "verified": true
++    },
++    {
++      "hash": "2956071116",
++      "offset": "1:0xDE22A8",
++      "verified": true
++    },
++    {
++      "hash": "3944157720",
++      "offset": "1:0xDE21A8",
++      "verified": true
++    },
++    {
++      "hash": "47585979",
++      "offset": "1:0xDE2218",
++      "verified": true
++    },
++    {
++      "hash": "1053761182",
++      "offset": "1:0x3E34FD0",
++      "verified": true
++    },
++    {
++      "hash": "1442127532",
++      "offset": "1:0x1F040F0",
++      "verified": true
++    },
++    {
++      "hash": "2589138805",
++      "offset": "1:0x1F042B0",
++      "verified": true
++    },
++    {
++      "hash": "991761313",
++      "offset": "1:0x4295968",
++      "verified": true
++    },
++    {
++      "hash": "1789010079",
++      "offset": "1:0x4295A98",
++      "verified": true
++    },
++    {
++      "hash": "2335332710",
++      "offset": "1:0x4894DB8",
++      "verified": true
++    },
++    {
++      "hash": "2396961659",
++      "offset": "1:0x2257830",
++      "verified": true
++    },
++    {
++      "hash": "1356558684",
++      "offset": "1:0x2160AC4",
++      "verified": true
++    },
++    {
++      "hash": "2770361993",
++      "offset": "1:0x2160E6C",
++      "verified": true
++    },
++    {
++      "hash": "3561321973",
++      "offset": "1:0x2161650",
++      "verified": true
++    },
++    {
++      "hash": "1721185030",
++      "offset": "1:0x2161AB8",
++      "verified": true
++    },
++    {
++      "hash": "85147431",
++      "offset": "1:0x214FA38",
++      "verified": true
++    },
++    {
++      "hash": "3524917346",
++      "offset": "1:0x2162974",
++      "verified": true
++    },
++    {
++      "hash": "1250975634",
++      "offset": "1:0x2161864",
++      "verified": true
++    },
++    {
++      "hash": "59383526",
++      "offset": "1:0x225FCE8",
++      "verified": true
++    },
++    {
++      "hash": "4175888425",
++      "offset": "1:0xC8A038",
++      "verified": true
++    },
++    {
++      "hash": "4117243690",
++      "offset": "1:0x9D89E4",
++      "verified": true
+     }
+   ]
+ }
+\ No newline at end of file
+diff --git a/docs/re/cet-codeware.md b/docs/re/cet-codeware.md
+new file mode 100644
+index 00000000..f19a0396
+--- /dev/null
++++ b/docs/re/cet-codeware.md
+@@ -0,0 +1,192 @@
++# CET / Codeware address additions (macOS 2.3.1, UUID A6656ADC-FBE2-36A4-9B9D-B4A9DE645089)
++
++Evidence lives in ~/Downloads/projects/cet/research/<source>/results.md. "likely" entries must pass the
++runtime verifier (hook hit counts + argument sanity) before a release.
++
++## Batch 2026-10-11
++
++| name | hash | offset | confidence | action | source |
++|---|---|---|---|---|---|
++| GetScriptGameInstance | 1559305924 | 1:0x1F42944 | confirmed | added | sample |
++| CGameFramework_InitializeGameInstance | 4007601841 | 1:0x3F0D900 | likely | added | re_boot |
++| CommunitySystem_Update | 1559565515 | 1:0x14AD374 | likely | added | triage |
++| EngineTime_Frequency | 3151104823 | 3:0x1C77408 | confirmed | added | triage |
++| Entity_Attach | 4248638169 | 1:0xC99368 | confirmed | corrected (was 1:0x180C9D8, verified=False) | sample |
++| Entity_Detach | 2263681375 | 1:0xC996C0 | likely | corrected (was 1:0x15EDE88, verified=False) | sample |
++| Entity_Dispose | 2515274237 | 1:0xC999E0 | confirmed | corrected (was 1:0xCF5E98, verified=False) | triage |
++| Entity_Initialize | 3490519617 | 1:0xC985EC | likely | corrected (was 1:0x3641A50, verified=False) | triage |
++| Entity_Assemble | 2182550867 | 1:0xC9E0E0 | likely | corrected (was 1:0xCCEDEC, verified=False) | re_medium |
++| Entity_Uninitialize | 3596356635 | 1:0xC992C4 | likely | corrected (was 1:0xCC45EC, verified=False) | triage |
++| Entity_ResolveRecordID | 525805301 | 1:0x378A7E8 | likely | added | re_medium |
++| EntityBuilder_ExtractComponentsJob | 489494088 | 1:0xCA41E0 | likely | corrected (was 1:0xD4DC20, verified=False) | triage |
++| EntitySpawner_SpawnEntity | 3068279668 | 1:0xCDD130 | confirmed | added | sample |
++| EntitySpawnerToken_dtor | 552341017 | 1:0xCE0D28 | confirmed | added | triage |
++| InkLayer_RegisterListener | 4792499 | 1:0x48DC344 | likely | added | re_ink |
++| InkLayer_AttachWidgetTree | 2050958960 | 1:0x48DB648 | confirmed | added | re_ink |
++| InkLogicController_OnInitialize | 2671382832 | 1:0x47CF584 | confirmed | added | triage |
++| InkLogicController_OnUninitialize | 1159862457 | 1:0x47CF720 | confirmed | added | triage |
++| InkLogicController_OnArrangeChildrenComplete | 3589084925 | 1:0x47CF848 | confirmed | added | triage |
++| InkSpawner_FinishAsyncSpawn | 2698985195 | 1:0x49799B8 | confirmed | confirmed existing | re_boot |
++| InkSystem_Instance | 2635337807 | 3:0x19C9830 | confirmed | added | sample |
++| InkSystem_ProcessCharacterEvent | 4284882427 | 1:0x4887524 | confirmed | added | re_boot |
++| InkWidget_GetLayer | 1667176558 | 1:0x49ADE28 | confirmed | added | re_ink |
++| InkWidget_SetLayer | 2516523266 | 1:0x49B18F0 | likely | added | re_ink |
++| InkWidget_ScriptReparent | 492509908 | 1:0x49B888C | confirmed | added | sample |
++| InkWidget_ScriptAddChild | 3558023194 | 1:0x49A3084 | likely | added | re_boot |
++| InkWidgetLibrary_AsyncSpawnFromExternal | 1396063719 | 1:0x4965B38 | confirmed | confirmed existing | re_boot |
++| InkWidgetLibrary_AsyncSpawnFromLocal | 118698863 | 1:0x4965980 | confirmed | confirmed existing | re_boot |
++| InkWidgetLibrary_SpawnFromExternal | 506278179 | 1:0x4965EC0 | confirmed | confirmed existing | re_boot |
++| InkWidgetLibrary_SpawnFromLocal | 1158555307 | 1:0x4965DE0 | confirmed | confirmed existing | re_boot |
++| IPlacedComponent_SetTransform | 1828854026 | 1:0xC417F0 | likely | corrected (was 1:0x1443324, verified=False) | triage |
++| Localization_LoadOnScreens | 3550098299 | 1:0x2F67DB4 | confirmed | confirmed existing | re_boot |
++| MorphTargetManager_ApplyMorphTarget | 633871992 | 1:0xC6C0C4 | likely | corrected (was 1:0x1C5226C, verified=False) | re_medium |
++| NodeRef_Create | 3491172781 | 1:0x3340CF8 | likely | added | triage |
++| ObjectSerializer_Prepare | 1944983789 | 1:0x2161438 | likely | added | re_medium |
++| PersistentObject_InitializeState | 3442350580 | 1:0x1F8DFFC | confirmed | added | re_boot |
++| PhysicsTraceResult_GetHitObject | 2394822845 | 1:0x4092830 | likely | added | sample |
++| PlayerSystem_OnPlayerSpawned | 2050111212 | 1:0x3FD4D70 | likely | added | re_medium + re_cet |
++| PointOfInterestMappin_SetPhase | 803085170 | 1:0x42EAF14 | likely | added | re_medium |
++| QuestPhaseInstance_ExecuteGraph | 779107884 | 1:0x2CFB178 | likely | added | sample |
++| QuestPhaseInstance_ExecuteNode | 3227858325 | 1:0x2CFD644 | likely | added | sample |
++| QuestsSystem_CreateContext | 3144298192 | 1:0x2EFA150 | confirmed | added | re_medium |
++| RenderData_Release | 2996308699 | 1:0x16A38D4 | likely | added | re_medium |
++| ResourceBank_ForgetResource | 2288918343 | 1:0x21B4AB8 | likely | added | triage |
++| ResourceSerializer_ExecutePostLoad | 1350901460 | 1:0x2259888 | likely | corrected (was 1:0x21AC670, verified=False) | sample |
++| RuntimeEntityRegistry_RegisterEntity | 2840271332 | 1:0xD13C5C | likely | added | triage |
++| RuntimeEntityRegistry_UnregisterEntity | 3878623943 | 1:0xD14084 | likely | added | triage |
++| RuntimeSystemEntity_AttachEntity | 1576214475 | 1:0xD25E50 | confirmed | added | re_medium |
++| RuntimeSystemEntity_DetachEntity | 1737563910 | 1:0xD25E58 | confirmed | added | re_medium |
++| RuntimeSystemWeather_GetEnvironmentDefinition | 1471948702 | 1:0xD5AEE0 | likely | added | triage |
++| RuntimeSystemWeather_GetWeatherState | 2679119876 | 1:0xD5AA60 | likely | added | triage |
++| RuntimeSystemWeather_SetWeatherByName | 2334794340 | 1:0xD5C384 | confirmed | added | sample |
++| RuntimeSystemWeather_SetWeatherByIndex | 1821516328 | 1:0xD597A8 | likely | added | sample |
++| ScriptBundle_dtor | 3993832650 | 1:0x21ECFD8 | confirmed | added | re_boot |
++| ScriptOpCodes_Register | 2070546748 | 1:0x2252EF4 | confirmed | added | triage |
++| ScriptValidator_CompareType | 4224523662 | 1:0x21FD144 | likely | added | sample |
++| ScriptValidator_Validate | 898639042 | 1:0x21FBF90 | confirmed | corrected (was 1:0x3D96BF4, verified=False) | re_boot |
++| ScriptValidator_ValidateProperty | 560604283 | 1:0x21FCFB8 | confirmed | added | re_boot |
++| SoundBankManager_ReadSoundBanksJson | 3961524856 | 1:0xDC8D0C | likely | added | triage |
++| TagSystem_AssignTag | 1239092911 | 1:0x20CDE7C | likely | added | sample |
++| TagSystem_UnassignTag | 1875775378 | 1:0x20CE358 | likely | added | sample |
++| VehicleGarageComponent_LoadSummonSetup | 1159928678 | 1:0x124FE1C | likely | added | triage |
++| InkSystem_ProcessInputEvents | 673454961 | 1:0x48842E0 | likely | added | re_codeware_port (triage guess 0x48863B4 was wrong) |
++| InkEventManager_FindCallback | 2788222225 | 1:0x4866EC8 | likely | added | re_ink/re_medium (macOS-only hash) |
++| InkEventCallback_Fire | 2681889087 | 1:0x488C410 | likely | added | re_ink/re_medium (macOS-only hash) |
++| InkWidget_ScriptAddChildWidget | 1543273776 | 1:0x49A31D4 | likely | added | re_codeware (macOS-only hash) |
++| Entity_FinishInitializeJob | 4290286529 | 1:0xC9E0E0 | likely | added | re_medium (macOS-only hash, job lambda) |
++| IComponent_ScriptToggle | 3887528355 | 1:0xCA711C | likely | added | re_codeware_triage (macOS-only hash) |
++| VehicleGarage_ToggleVehicle | 1146243713 | 1:0x1251EB4 | likely | added | re_codeware_triage (macOS-only hash) |
++| VehicleSystem_NotifyGarageChanged | 953659461 | 1:0x12D9B80 | likely | added | re_codeware_triage (macOS-only hash) |
++
++## Batch 2026-10-11
++
++| name | hash | offset | confidence | action | source |
++|---|---|---|---|---|---|
++| CBaseRTTIType_sub_80 | 3832485534 | 1:0x21AFD4C | confirmed | corrected (was 1:0x22EEAC, verified=False) | research/re_sdkrtti/results.json |
++| CBaseRTTIType_sub_88 | 364779332 | 1:0x21AFE0C | confirmed | corrected (was 1:0x22EEC0, verified=False) | research/re_sdkrtti/results.json |
++| CBaseRTTIType_sub_90 | 2757309857 | 1:0x21AFED4 | confirmed | corrected (was 1:0x22F04C, verified=False) | research/re_sdkrtti/results.json |
++| CBaseRTTIType_sub_98 | 2930319133 | 1:0x21B007C | confirmed | corrected (was 1:0x3228, verified=False) | research/re_sdkrtti/results.json |
++| CBaseRTTIType_sub_A0 | 2396396482 | 1:0x21B01E0 | confirmed | corrected (was 1:0x3228, verified=False) | research/re_sdkrtti/results.json |
++| CEnum_Unserialize | 1087575974 | 1:0x21A39B0 | confirmed | corrected (was 1:0x2213FD4, verified=False) | research/re_sdkrtti/results.json |
++| CEnum_ToString | 68817558 | 1:0x21A3BC0 | confirmed | corrected (was 1:0x2214898, verified=False) | research/re_sdkrtti/results.json |
++| CEnum_FromString | 566894273 | 1:0x21A3D4C | confirmed | corrected (was 1:0x21B13AC, verified=False) | research/re_sdkrtti/results.json |
++| UpdateRegistrar_RegisterGroupUpdate | 4254156293 | 1:0x3D95800 | confirmed | corrected (was 1:0x1FFFF8C, verified=False) | research/re_sdkrtti/results.json |
++| UpdateRegistrar_RegisterBucketUpdate | 422530722 | 1:0x3D95924 | confirmed | corrected (was 1:0x2000100, verified=False) | research/re_sdkrtti/results.json |
++| VehicleController_ToggleAuxLights | 1883248814 | 1:0x12E6F44 | likely | added | research/re_sdkrtti/results.json |
++
++## Batch 2026-10-11
++
++| name | hash | offset | confidence | action | source |
++|---|---|---|---|---|---|
++| CScript_Log | 3455393801 | 1:0x22111F8 | confirmed | added | re_cet |
++| CScript_LogError | 2135235617 | 1:0x22112D8 | confirmed | added | re_cet |
++| CScript_LogWarning | 3222609133 | 1:0x22113B8 | confirmed | added | re_cet |
++| CScript_LogChannel | 1663049434 | 1:0x2211498 | confirmed | added | re_cet |
++| CScript_LogChannelWarning | 2841780134 | 1:0x22116C8 | confirmed | added | re_cet |
++| CScript_ToStringDEBUG | 3515162577 | 1:0x2B79D10 | confirmed | added | re_cet |
++| CScript_TDBIDConstructorDerive | 326438016 | 1:0x3453B14 | confirmed | confirmed existing | re_cet |
++| CScript_TranslateBytecode | 3442875632 | 1:0x21E897C | likely | added | re_cet |
++| CScript_AllocateFunction | 160045886 | 1:0x217844C | likely | added | re_cet |
++| CScript_TweakDBLoad | 3602585178 | 1:0x2B75570 | confirmed | confirmed existing | re_cet |
++| CScript_RunPureScript | 3791200470 | 1:0x2172BF4 | confirmed | confirmed existing | re_cet |
++| PlayerSystem_OnPlayerSpawned | 2050111212 | 1:0x3FD4D70 | likely | confirmed existing | re_cet |
++| CPatches_BoundaryTeleport | 887623293 | 1:0x3D69C44 | confirmed | added | re_cet |
++| CPatches_Vignette | 1592528795 | 1:0xB388D4 | likely | added | re_cet |
++| CBaseInitializationState_OnTick | 4233370276 | 1:0x3D8C0CC | confirmed | added | re_cet |
++| CInitializationState_OnTick | 2447710505 | 1:0x3D8D710 | confirmed | added | re_cet |
++| CRunningState_OnTick | 3592689218 | 1:0x3D8D820 | confirmed | added | re_cet |
++| CShutdownState_OnTick | 4069332669 | 1:0x3D8D94C | confirmed | added | re_cet |
++
++## Batch 2026-10-11
++
++| name | hash | offset | confidence | action | source |
++|---|---|---|---|---|---|
++| UserMapping_GetMappingCollection | 3702071356 | 1:0x1D796B4 | confirmed | added | re_modsettings |
++| UserMapping_ClearRuntimeDataOnRawMappings | 4196866905 | 1:0x1D7923C | confirmed | added | re_modsettings |
++| ReleaseScriptData | 3993832650 | 1:0x21ECFD8 | confirmed | confirmed existing | re_boot |
++| ModSettings_InputManager_ApplyOverridesSlot | 647509972 | 2:0x1B45F0 | likely | added | re_modsettings (macOS-only, FNV-1a 32 of the name; game::input::Manager vtable slot +0x258) |
++| ModSettings_InputManager_ApplyOverridesThunk | 3781755204 | 1:0x1D735A4 | likely | added | re_modsettings (macOS-only, FNV-1a 32 of the name; value the slot holds before the swap) |
++| ModSettings_KeyBindingListen_PadSkipBranch | 1325863745 | 1:0x48039B4 | confirmed | added | re_modsettings (macOS-only, FNV-1a 32 of the name; b.hi 0x54FFFBC8 in lambda 0x1048038B8) |
++
++## Batch 2026-10-11
++
++| name | hash | offset | confidence | action | source |
++|---|---|---|---|---|---|
++| AUDIO_PLAY_DIALOG_LINE | 687159926 | 1:0x3E9CD24 | confirmed | added | re_audioware |
++| AUDIOSYSTEM_PLAY | 3450936590 | 1:0xA86010 | confirmed | added | re_audioware |
++| AUDIOSYSTEM_STOP | 3531087134 | 1:0xA861D8 | confirmed | added | re_audioware |
++| AUDIOSYSTEM_SWITCH | 352853482 | 1:0xA8976C | confirmed | added | re_audioware |
++| ENTITY_DISPOSE | 52566656 | 1:0xC9AC40 | confirmed | added | re_audioware |
++| ENTITY_QUEUE_EVENT | 1585257392 | 1:0xC9AE7C | confirmed | added | re_audioware |
++| TIMEDILATABLE_SETINDIVIDUALTIMEDILATION | 2148541576 | 1:0x1F9157C | confirmed | added | re_audioware |
++| TIMEDILATABLE_UNSETINDIVIDUALTIMEDILATION | 3659539819 | 1:0x1F91868 | confirmed | added | re_audioware |
++| TIMESYSTEM_SETTIMEDILATION | 2715557778 | 1:0x3C00790 | confirmed | added | re_audioware |
++| TIMESYSTEM_UNSETTIMEDILATION | 4033159285 | 1:0x3C00A54 | confirmed | added | re_audioware |
++| SAVEHANDLINGCONTROLLER_LOAD_SAVE_IN_GAME | 2595759321 | 1:0x23B6188 | confirmed | added | re_audioware |
++| UISYSTEM_QUEUE_EVENT | 2418220865 | 1:0x25D0CF8 | confirmed | added | re_audioware |
++| INKIWIDGETCONTROLLER_QUEUE_EVENT | 1542136228 | 1:0x47CAC28 | confirmed | added | re_audioware |
++| INKLOGICCONTROLLER_QUEUE_EVENT | 3363774471 | 1:0x47D35E0 | confirmed | added | re_audioware |
++| INKMENUSCENARIO_SWITCH_TO_SCENARIO | 3921223769 | 1:0x49300D4 | confirmed | added | re_audioware |
++| INKMENUSCENARIO_QUEUE_EVENT | 1453924746 | 1:0x4930374 | confirmed | added | re_audioware |
++| SOUNDCOMPONENT_ONSTOPDIALOGLINE | 3572571507 | 1:0x35494E8 | confirmed | added | re_audioware |
++| SOUNDENGINE_POST_EVENT | 1497764821 | 1:0xDE1D64 | confirmed | added | re_audioware |
++| SOUNDENGINE_POST_EVENT_ONESHOT | 4018084407 | 1:0xDE1ED4 | confirmed | added | re_audioware |
++| SOUNDENGINE_EXTERNAL_EVENT_RES | 2846497959 | 1:0xDE2088 | confirmed | added | re_audioware |
++| SOUNDENGINE_SET_SWITCH | 2956071116 | 1:0xDE22A8 | confirmed | added | re_audioware |
++| SOUNDENGINE_SET_PARAMETER | 3944157720 | 1:0xDE21A8 | confirmed | added | re_audioware |
++| SOUNDENGINE_SET_GLOBAL_PARAMETER | 47585979 | 1:0xDE2218 | confirmed | added | re_audioware |
++| AUDIOINTERNALEVENT_APPLY_ACTION | 1053761182 | 1:0x3E34FD0 | confirmed | added | re_audioware |
++| CAMERACOMPONENT_ACTIVATE | 1442127532 | 1:0x1F040F0 | confirmed | added | re_audioware |
++| CAMERACOMPONENT_DEACTIVATE | 2589138805 | 1:0x1F042B0 | confirmed | added | re_audioware |
++| METADATAMANAGER_GET_EVENT_WWISE_ID | 991761313 | 1:0x4295968 | confirmed | added | re_audioware |
++| METADATAMANAGER_WWISE_LOOKUP | 1789010079 | 1:0x4295A98 | confirmed | added | re_audioware |
++
++## Batch 2026-10-11
++
++| name | hash | offset | confidence | action | source |
++|---|---|---|---|---|---|
++| userSettingsGroup_GetVar (macOS-only FNV-1a) | 2335332710 | 1:0x4894DB8 | confirmed | added | re_compat: cp77_symbols.tsv native_userSettingsGroup::GetVar |
++| AssertionFailed | 4285205681 | 1:0x2D80 | confirmed | corrected (was 1:0x3C3D48, verified=False) | re_compat: called by every assert site with (file, line, cond, fmt, ...); hooked in game 2026-10-11, logged inGameConfigGroup.cpp:76 |
++| ResourceLoader_OnUpdate | 1303056161 | 1:0x21B99A8 | likely | corrected (was 1:0x2D9766C, verified=False) | re_archivexl |
++| InkWorldLayer_UpdateComponents | 1693194103 | 1:0x491DDB0 | likely | corrected (was 1:0x3DA0574, verified=False) | re_archivexl |
++
++## Batch 2026-10-12
++
++| name | hash | offset | confidence | action | source |
++|---|---|---|---|---|---|
++| ResourceSerializer_FinalizeJob | 2396961659 | 1:0x2257830 | confirmed | added | re_codeware_gaps §1 (macOS-only hash; job lambda 'Serialization/WaitForEditorPostLoadJobs', only xref in OnDependenciesReady 0x1022575C0) |
++| ObjectSerializer_Construct | 1356558684 | 1:0x2160AC4 | confirmed | added | re_codeware_gaps §2 (macOS-only hash; 18 callers, always followed by Prepare) |
++| ObjectSerializer_Destruct | 2770361993 | 1:0x2160E6C | confirmed | added | re_codeware_gaps §2 (macOS-only hash; body of thunk 0x102160F5C used by 29 call sites) |
++| ObjectSerializer_AddObject | 3561321973 | 1:0x2161650 | confirmed | added | re_codeware_gaps §2 (macOS-only hash; (ser x0, ISerializable* x1) -> index, 0x102166BC8) |
++| ObjectSerializer_Write | 1721185030 | 1:0x2161AB8 | confirmed | added | re_codeware_gaps §2 (macOS-only hash; x8 0x80 result, DataBuffer at +0x58, 0x1031F08E4) |
++| ObjectSerializer_ParseHeader | 85147431 | 1:0x214FA38 | confirmed | added | re_codeware_gaps §2 (macOS-only hash; x8 0x58 tables, x0 buffer view, 17 callers) |
++| ObjectSerializer_ReadAll | 3524917346 | 1:0x2162974 | likely | added | re_codeware_gaps §2 (macOS-only hash; all-ones bitmask + 0x102161E18, same as inline code in reader 0x103FEBC30) |
++| ObjectSerializer_GetObject | 1250975634 | 1:0x2161864 | confirmed | added | re_codeware_gaps §2 (macOS-only hash; x8 Handle, (ser x0, idx w1), persistency reader 0x103FEBE6C) |
++| DataBuffer_Destruct | 59383526 | 1:0x225FCE8 | likely | added | re_codeware_gaps §2 (macOS-only hash; frees +0x20 then RawBuffer dtor; writer 0x1031F08E4 runs it on Write result +0x58) |
++| EntityComponentsRequest_Construct | 4175888425 | 1:0xC8A038 | confirmed | added | re_codeware_gaps §3 (macOS-only hash; callers Entity::Initialize 0x100C986F0, Entity::Reassemble 0x100C957D4, 0x100C95664) |
++
++## Batch 2026-10-27
++
++| name | hash | offset | confidence | action | source |
++|---|---|---|---|---|---|
++| JobDispatcher_DispatchParallelJob | 4117243690 | 1:0x9D89E4 | likely (strong) | added | research/re_jobqueue/NOTES.md |
+diff --git a/include/RED4ext/JobQueue-inl.hpp b/include/RED4ext/JobQueue-inl.hpp
+index bc54397d..44aecea2 100644
+--- a/include/RED4ext/JobQueue-inl.hpp
++++ b/include/RED4ext/JobQueue-inl.hpp
+@@ -209,8 +209,10 @@ RED4EXT_INLINE void RED4ext::JobQueue::DispatchJob(const ParallelJobInstance& aJ
+ {
+     using func_t = void (*)(void*, const ParallelJobInstance&, uint8_t, JobInternalHandle*, JobInternalHandle*);
+     static UniversalRelocFunc<func_t> func(Detail::AddressHashes::JobDispatcher_DispatchParallelJob);
++    // macOS: the implementation reads the dispatcher from x0 (Windows ignores it); see research/re_jobqueue/NOTES.md
++    static UniversalRelocPtr<void*> dispatcher(Detail::AddressHashes::JobDispatcher);
+ 
+-    func(nullptr, aJob, params.unk00, unk10.internal, unk18.internal);
++    func(dispatcher, aJob, params.unk00, unk10.internal, unk18.internal);
+ }
+ 
+ RED4EXT_INLINE void RED4ext::JobQueue::SyncWait()
+diff --git a/include/RED4ext/RTTI/IType-inl.hpp b/include/RED4ext/RTTI/IType-inl.hpp
+index c3aff480..066a1c7d 100644
+--- a/include/RED4ext/RTTI/IType-inl.hpp
++++ b/include/RED4ext/RTTI/IType-inl.hpp
+@@ -112,6 +112,16 @@ RED4EXT_INLINE bool RED4ext::rtti::IType::ToString(const void* aInstance, CStrin
+     return false;
+ }
+ 
++#ifdef __APPLE__
++RED4EXT_INLINE bool RED4ext::rtti::IType::FromString(void* aInstance, const char* aString, uint32_t aLength) const
++{
++    RED4EXT_UNUSED_PARAMETER(aInstance);
++    RED4EXT_UNUSED_PARAMETER(aString);
++    RED4EXT_UNUSED_PARAMETER(aLength);
++
++    return false;
++}
++#else
+ RED4EXT_INLINE bool RED4ext::rtti::IType::FromString(void* aInstance, const CString& aString) const
+ {
+     RED4EXT_UNUSED_PARAMETER(aInstance);
+@@ -119,6 +129,7 @@ RED4EXT_INLINE bool RED4ext::rtti::IType::FromString(void* aInstance, const CStr
+ 
+     return false;
+ }
++#endif
+ 
+ RED4EXT_INLINE bool RED4ext::rtti::IType::sub_78()
+ {
+diff --git a/include/RED4ext/RTTI/IType.hpp b/include/RED4ext/RTTI/IType.hpp
+index f088aa93..28a1b5e5 100644
+--- a/include/RED4ext/RTTI/IType.hpp
++++ b/include/RED4ext/RTTI/IType.hpp
+@@ -30,7 +30,17 @@ struct IType
+     virtual void Move(void* aLhs, void* aRhs) const;                                      // 58
+     virtual bool Unserialize(BaseStream* aStream, void* aInstance, int64_t a3) const = 0; // 60
+     virtual bool ToString(const void* aInstance, CString& aOut) const;                    // 68
++#ifdef __APPLE__
++    // macOS: the game passes the string by value as {const char*, uint32 length} in x2:x3 (base sub_88 calls
++    // vt+0x78 as (type, inst, str.c_str(), str.Length()); see RED4ext.SDK docs/re/cet-codeware.md, re_sdkrtti).
++    virtual bool FromString(void* aInstance, const char* aString, uint32_t aLength) const; // 70
++    bool FromString(void* aInstance, const CString& aString) const
++    {
++        return FromString(aInstance, aString.c_str(), aString.Length());
++    }
++#else
+     virtual bool FromString(void* aInstance, const CString& aString) const;               // 70
++#endif
+     virtual bool sub_78();                                                                // 78
+     virtual bool sub_80(int64_t a1, void* aInstance);                                     // 80
+     virtual bool sub_88(int64_t a1, void* aInstance);                                     // 88
+diff --git a/include/RED4ext/RTTISystem.hpp b/include/RED4ext/RTTISystem.hpp
+index 91915805..74eb9049 100644
+--- a/include/RED4ext/RTTISystem.hpp
++++ b/include/RED4ext/RTTISystem.hpp
+@@ -24,8 +24,15 @@ struct IRTTISystem
+     virtual CClass* GetClass(CName aName) = 0;                                                   // 10
+     virtual CEnum* GetEnum(CName aName) = 0;                                                     // 18
+     virtual CBitfield* GetBitfield(CName aName) = 0;                                             // 20
++#ifdef __APPLE__
++    // macOS: MSVC orders this overload pair in reverse; clang keeps declaration order. In the Mac binary slot 0x28 looks
++    // up the full-name map (+0xA0, e.g. "InitializeScripts;") and slot 0x30 the hashed map (+0xD0).
++    virtual CGlobalFunction* GetFunction(CName aName) = 0;                                       // 28
++    virtual void sub_28() = 0;                                                                   // 30
++#else
+     virtual void sub_28() = 0;                                                                   // 28
+     virtual CGlobalFunction* GetFunction(CName aName) = 0;                                       // 30
++#endif
+     virtual void sub_38() = 0;                                                                   // 38
+     virtual void GetNativeTypes(DynArray<rtti::IType*>& aTypes) = 0;                             // 40
+     virtual void GetGlobalFunctions(DynArray<CBaseFunction*>& aFunctions) = 0;                   // 48
+diff --git a/include/RED4ext/RTTITypes-inl.hpp b/include/RED4ext/RTTITypes-inl.hpp
+index d1d38781..6114511c 100644
+--- a/include/RED4ext/RTTITypes-inl.hpp
++++ b/include/RED4ext/RTTITypes-inl.hpp
+@@ -381,12 +381,21 @@ RED4EXT_INLINE bool RED4ext::CEnum::ToString(const void* aInstance, CString& aOu
+     return func(this, aInstance, aOut);
+ }
+ 
++#ifdef __APPLE__
++RED4EXT_INLINE bool RED4ext::CEnum::FromString(void* aInstance, const char* aString, uint32_t aLength) const
++{
++    using func_t = bool (*)(const CEnum*, void*, const char*, uint32_t);
++    static UniversalRelocFunc<func_t> func(Detail::AddressHashes::CEnum_FromString);
++    return func(this, aInstance, aString, aLength);
++}
++#else
+ RED4EXT_INLINE bool RED4ext::CEnum::FromString(void* aInstance, const CString& aString) const
+ {
+     using func_t = bool (*)(const CEnum*, void*, const CString&);
+     static UniversalRelocFunc<func_t> func(Detail::AddressHashes::CEnum_FromString);
+     return func(this, aInstance, aString);
+ }
++#endif
+ 
+ RED4EXT_INLINE RED4ext::CBitfield::CBitfield(CName aName, int8_t aActualSize, Flags aFlags)
+     : name(aName)
+@@ -501,9 +510,18 @@ RED4EXT_INLINE bool RED4ext::CBitfield::ToString(const void* aInstance, CString&
+     return func(this, aInstance, aOut);
+ }
+ 
++#ifdef __APPLE__
++RED4EXT_INLINE bool RED4ext::CBitfield::FromString(void* aInstance, const char* aString, uint32_t aLength) const
++{
++    using func_t = bool (*)(const CBitfield*, void*, const char*, uint32_t);
++    static UniversalRelocFunc<func_t> func(Detail::AddressHashes::CBitfield_FromString);
++    return func(this, aInstance, aString, aLength);
++}
++#else
+ RED4EXT_INLINE bool RED4ext::CBitfield::FromString(void* aInstance, const CString& aString) const
+ {
+     using func_t = bool (*)(const CBitfield*, void*, const CString&);
+     static UniversalRelocFunc<func_t> func(Detail::AddressHashes::CBitfield_FromString);
+     return func(this, aInstance, aString);
+ }
++#endif
+diff --git a/include/RED4ext/RTTITypes.hpp b/include/RED4ext/RTTITypes.hpp
+index 9c245cd9..5b6920e2 100644
+--- a/include/RED4ext/RTTITypes.hpp
++++ b/include/RED4ext/RTTITypes.hpp
+@@ -243,7 +243,12 @@ struct CEnum : rtti::IType
+     void Assign(void* aLhs, const void* aRhs) const final;                          // 50
+     bool Unserialize(BaseStream* aStream, void* aInstance, int64_t a3) const final; // 60
+     bool ToString(const void* aInstance, CString& aOut) const final;                // 68
++#ifdef __APPLE__
++    using rtti::IType::FromString;
++    bool FromString(void* aInstance, const char* aString, uint32_t aLength) const final; // 70
++#else
+     bool FromString(void* aInstance, const CString& aString) const final;           // 70
++#endif
+ 
+     CName name;                       // 10
+     CName computedName;               // 18
+@@ -286,7 +291,12 @@ struct CBitfield : rtti::IType
+     void Assign(void* aLhs, const void* aRhs) const final;                          // 50
+     bool Unserialize(BaseStream* aStream, void* aInstance, int64_t a3) const final; // 60
+     bool ToString(const void* aInstance, CString& aOut) const final;                // 68
++#ifdef __APPLE__
++    using rtti::IType::FromString;
++    bool FromString(void* aInstance, const char* aString, uint32_t aLength) const final; // 70
++#else
+     bool FromString(void* aInstance, const CString& aString) const final;           // 70
++#endif
+ 
+     CName name;         // 10
+     CName computedName; // 18
+diff --git a/include/RED4ext/Scripting/Natives/gameIDynamicEntityIDSystem.hpp b/include/RED4ext/Scripting/Natives/gameIDynamicEntityIDSystem.hpp
+index e492955b..2aaedcc8 100644
+--- a/include/RED4ext/Scripting/Natives/gameIDynamicEntityIDSystem.hpp
++++ b/include/RED4ext/Scripting/Natives/gameIDynamicEntityIDSystem.hpp
+@@ -13,8 +13,25 @@ struct IDynamicEntityIDSystem : IGameSystem
+     static constexpr const char* NAME = "gameIDynamicEntityIDSystem";
+     static constexpr const char* ALIAS = NAME;
+ 
++#ifdef __APPLE__
++    // macOS: EntityID is trivially copyable, so the new ID is returned in x0 (gameDynamicEntityIDSystem bodies
++    // 0x1035EDD9C / 0x1035EDDD8 end with the ID in w0). The wrappers keep the Windows call shape.
++    virtual ent::EntityID GetNextTransientIDMac() = 0;   // 1A8
++    virtual ent::EntityID GetNextPersistableIDMac() = 0; // 1B0
++    void* GetNextTransientID(ent::EntityID& aOut)
++    {
++        aOut = GetNextTransientIDMac();
++        return nullptr;
++    }
++    void* GetNextPersistableID(ent::EntityID& aOut)
++    {
++        aOut = GetNextPersistableIDMac();
++        return nullptr;
++    }
++#else
+     virtual void* GetNextTransientID(ent::EntityID& aOut) = 0;   // 1A8
+     virtual void* GetNextPersistableID(ent::EntityID& aOut) = 0; // 1B0
++#endif
+     virtual void sub_1B8() = 0;                                  // 1B8
+     virtual void sub_1C0() = 0;                                  // 1C0
+     virtual void sub_1C8() = 0;                                  // 1C8
+diff --git a/include/RED4ext/Scripting/Natives/gameIEntityStubSystem.hpp b/include/RED4ext/Scripting/Natives/gameIEntityStubSystem.hpp
+index e8e4927a..607f298d 100644
+--- a/include/RED4ext/Scripting/Natives/gameIEntityStubSystem.hpp
++++ b/include/RED4ext/Scripting/Natives/gameIEntityStubSystem.hpp
+@@ -126,8 +126,20 @@ struct IEntityStubSystem : IGameSystem
+     static constexpr const char* NAME = "gameIEntityStubSystem";
+     static constexpr const char* ALIAS = NAME;
+ 
++#ifdef __APPLE__
++    // macOS: the token is the return value (x8 sret; game 2.3.1 0x101fd71bc stores it through x8). On Windows the
++    // hidden return pointer sits where aToken is declared. Calling the Windows shape left x8 unset, and the game wrote
++    // the token wherever x8 pointed (its own code: SIGBUS in Codeware's DynamicEntitySystem::SpawnFromEntityState).
++    virtual EntityStubTokenPtr CreateStub(EntityStubCreateRequest& aRequest, EntityStubCallback&& aCallback) = 0; // 1B0
++    void* CreateStub(EntityStubTokenPtr& aToken, EntityStubCreateRequest& aRequest, EntityStubCallback&& aCallback)
++    {
++        aToken = CreateStub(aRequest, std::move(aCallback));
++        return &aToken;
++    }
++#else
+     virtual void* CreateStub(EntityStubTokenPtr& aToken, EntityStubCreateRequest& aRequest,
+                              EntityStubCallback&& aCallback) = 0; // 1B0
++#endif
+     virtual void* RestoreStub(EntityStubTokenPtr& aToken, EntityStubRestoreRequest& aRequest,
+                               EntityStubCallback&& aCallback) = 0; // 1B8
+     virtual void CancelStub(EntityStubTokenPtr& aToken) = 0;       // 1C0
+diff --git a/include/RED4ext/Scripting/Natives/gameIGameSystem-inl.hpp b/include/RED4ext/Scripting/Natives/gameIGameSystem-inl.hpp
+index 247979ed..a7c1da71 100644
+--- a/include/RED4ext/Scripting/Natives/gameIGameSystem-inl.hpp
++++ b/include/RED4ext/Scripting/Natives/gameIGameSystem-inl.hpp
+@@ -68,6 +68,14 @@ RED4EXT_INLINE void RED4ext::game::IGameSystem::OnGameResumed()
+ {
+ }
+ 
++#ifdef RED4EXT_PLATFORM_MACOS
++RED4EXT_INLINE RED4ext::game::SaveLock RED4ext::game::IGameSystem::IsSavingLocked(bool aIsAutoSave)
++{
++    RED4EXT_UNUSED_PARAMETER(aIsAutoSave);
++
++    return {};
++}
++#else
+ RED4EXT_INLINE void* RED4ext::game::IGameSystem::IsSavingLocked(RED4ext::game::SaveLock* aLock, bool a2)
+ {
+     RED4EXT_UNUSED_PARAMETER(a2);
+@@ -75,6 +83,7 @@ RED4EXT_INLINE void* RED4ext::game::IGameSystem::IsSavingLocked(RED4ext::game::S
+     *aLock = {};
+     return aLock;
+ }
++#endif
+ 
+ RED4EXT_INLINE void RED4ext::game::IGameSystem::OnStreamingWorldLoaded(RED4ext::world::RuntimeScene* aScene,
+                                                                        uint64_t a2, const RED4ext::JobGroup& aJobGroup)
+diff --git a/include/RED4ext/Scripting/Natives/gameIGameSystem.hpp b/include/RED4ext/Scripting/Natives/gameIGameSystem.hpp
+index da503092..a784cc3a 100644
+--- a/include/RED4ext/Scripting/Natives/gameIGameSystem.hpp
++++ b/include/RED4ext/Scripting/Natives/gameIGameSystem.hpp
+@@ -3,6 +3,9 @@
+ #include <RED4ext/Common.hpp>
+ #include <RED4ext/JobQueue.hpp>
+ #include <RED4ext/Scripting/Natives/IUpdatableSystem.hpp>
++#ifdef RED4EXT_PLATFORM_MACOS
++#include <RED4ext/Scripting/Natives/gameSaveLock.hpp>
++#endif
+ 
+ namespace RED4ext
+ {
+@@ -34,7 +37,13 @@ struct IGameSystem : IUpdatableSystem
+     virtual void OnGamePrepared();                                                                            // 158
+     virtual void OnGamePaused();                                                                              // 160
+     virtual void OnGameResumed();                                                                             // 168
+-    virtual void* IsSavingLocked(SaveLock* aLock, bool a2);                                                   // 170
++#ifdef RED4EXT_PLATFORM_MACOS
++    // Itanium/arm64: the 0x28-byte SaveLock comes back through x8 and x1 is the auto-save flag. Declared the
++    // Windows way (out-pointer first), the default body wrote through the flag: every save crashed the game.
++    virtual SaveLock IsSavingLocked(bool aIsAutoSave); // 170
++#else
++    virtual void* IsSavingLocked(SaveLock* aLock, bool a2); // 170
++#endif
+     virtual void OnStreamingWorldLoaded(world::RuntimeScene* aScene, uint64_t a2, const JobGroup& aJobGroup); // 178
+     virtual void sub_180();                                                                                   // 180
+     virtual void sub_188();                                                                                   // 188
+diff --git a/include/RED4ext/Scripting/Natives/gameIPersistencySystem.hpp b/include/RED4ext/Scripting/Natives/gameIPersistencySystem.hpp
+index f9bd2e54..1bbb294b 100644
+--- a/include/RED4ext/Scripting/Natives/gameIPersistencySystem.hpp
++++ b/include/RED4ext/Scripting/Natives/gameIPersistencySystem.hpp
+@@ -21,8 +21,21 @@ struct IPersistencySystem : IGameSystem
+     static constexpr const char* NAME = "gameIPersistencySystem";
+     static constexpr const char* ALIAS = "IGamePersistencySystem";
+ 
++#ifdef __APPLE__
++    // macOS: the state handle comes back through x8 (gamePersistencySystem slot body 0x103FED0B4 saves x8 as the
++    // result and reads the PersistentID from x1). The wrapper keeps the Windows call shape for plugin code.
++    virtual Handle<PersistentState> GetPersistentStateMac(const PersistentID& aPersistentID,
++                                                          CClass* aPersistentStateType, bool aCreateState) = 0; // 1A8
++    void* GetPersistentState(Handle<PersistentState>& aState, const PersistentID& aPersistentID,
++                             CClass* aPersistentStateType, bool aCreateState)
++    {
++        aState = GetPersistentStateMac(aPersistentID, aPersistentStateType, aCreateState);
++        return nullptr;
++    }
++#else
+     virtual void* GetPersistentState(Handle<PersistentState>& aState, const PersistentID& aPersistentID,
+                                      CClass* aPersistentStateType, bool aCreateState) = 0;      // 1A8
++#endif
+     virtual void sub_1B0() = 0;                                                                 // 1B0
+     virtual void sub_1B8() = 0;                                                                 // 1B8
+     virtual void sub_1C0() = 0;                                                                 // 1C0
+diff --git a/include/RED4ext/Scripting/Natives/gameIPopulationSystem.hpp b/include/RED4ext/Scripting/Natives/gameIPopulationSystem.hpp
+index a784015f..c7ac5ed0 100644
+--- a/include/RED4ext/Scripting/Natives/gameIPopulationSystem.hpp
++++ b/include/RED4ext/Scripting/Natives/gameIPopulationSystem.hpp
+@@ -40,7 +40,17 @@ struct IPopulationSystem : IGameSystem
+     static constexpr const char* NAME = "gameIPopulationSystem";
+     static constexpr const char* ALIAS = NAME;
+ 
++#ifdef __APPLE__
++    // macOS: the entity handle comes back through x8 (gamePopulationSystem body 0x10155C9D4: x20 = x8, id in w1).
++    virtual Handle<Entity> FindEntityMac(uint32_t aDynamicEntityID) = 0; // 1A8
++    void* FindEntity(Handle<Entity>& aOut, uint32_t aDynamicEntityID)
++    {
++        aOut = FindEntityMac(aDynamicEntityID);
++        return nullptr;
++    }
++#else
+     virtual void* FindEntity(Handle<Entity>& aOut, uint32_t aDynamicEntityID) = 0; // 1A8
++#endif
+     virtual void sub_1B0() = 0;                                                    // 1B0
+     virtual void sub_1B8() = 0;                                                    // 1B8
+     virtual void sub_1C0() = 0;                                                    // 1C0
+diff --git a/include/RED4ext/Scripting/Utils-inl.hpp b/include/RED4ext/Scripting/Utils-inl.hpp
+index 6618df08..c115dab3 100644
+--- a/include/RED4ext/Scripting/Utils-inl.hpp
++++ b/include/RED4ext/Scripting/Utils-inl.hpp
+@@ -53,8 +53,8 @@ RED4EXT_INLINE bool RED4ext::ExecuteFunction(CClass* aContext, CBaseFunction* aF
+     auto engine = CGameEngine::Get();
+     auto gameInstance = engine->framework->gameInstance;
+ 
+-    Handle<IScriptable> instance(gameInstance->GetSystem(aContext));
+-    return ExecuteFunction(instance, aFunc, aOut, aArgs);
++    // No Handle here: the game owns its systems, and dropping a temporary Handle freed cpPlayerSystem mid-session.
++    return ExecuteFunction(static_cast<void*>(gameInstance->GetSystem(aContext)), aFunc, aOut, aArgs);
+ }
+ 
+ RED4EXT_INLINE bool RED4ext::ExecuteFunction(CClass* aContext, CName aFunc, void* aOut, StackArgs_t& aArgs)

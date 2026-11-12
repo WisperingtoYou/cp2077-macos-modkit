@@ -1,0 +1,2 @@
+@addField(WeakspotComponent)
+public native let defaultPhysicalDestructionProperties: WeakspotPhysicalDestructionProperties;

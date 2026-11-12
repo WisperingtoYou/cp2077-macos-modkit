@@ -1,0 +1,28 @@
+public native struct worldProxyMiscAdvancedParams {
+  public native let useLod1: Bool;
+  public native let smoothVolume: Bool;
+  public native let blurCutout: Uint8;
+  public native let occlusionRatio: Uint8;
+  public native let capTop: Bool;
+  public native let capBottom: Bool;
+  public native let fillHolesBeforeReduceRatio: Float;
+  public native let fillHolesAfterReduceRatio: Float;
+  public native let rsSweepOrder: Int32;
+  public native let rsDetailDrop: Float;
+  public native let rsAxisPrecision: Vector3;
+  public native let rsAxisExpand: Vector3;
+  public native let rsAliasingReduction: Float;
+  public native let bcMergeRange: Float;
+  public native let bcSizeCutoff: Float;
+  public native let bcIterations: Float;
+  public native let bcMaxSize: Float;
+  public native let bcMinSize: Float;
+  public native let bcMergeSensitivity: Float;
+  public native let bcMinScale: Float;
+  public native let bcGridSize: Float;
+  public native let bcFilterSensitivity: Float;
+  public native let bcBoundsRatioLimit: Float;
+  public native let useClosestPointOnMesh: Bool;
+  public native let removeIslands: Bool;
+  public native let backgroundColor: Color;
+}

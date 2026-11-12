@@ -1,0 +1,23 @@
+public native struct gameActionMoveToSmartObjectState {
+  public native let targetPos: Vector3;
+  public native let toleranceRadius: Float;
+  public native let rotateEntity: Bool;
+  public native let moveStyle: Uint32;
+  public native let replicationId: Uint32;
+  public native let type: Uint16;
+  public native let startTimeStamp: netTime;
+  public native let stopTimeStamp: netTime;
+  public native let updateBucket: Uint8;
+  public native let targetHash: Uint64;
+  public native let usePathfinding: Bool;
+  public native let useStart: Bool;
+  public native let useStop: Bool;
+  public native let entryType: gameSmartObjectInstanceEntryType;
+  public native let movementType: moveMovementType;
+  public native let strafingTarget: wref<GameObject>;
+  public native let entryDirection: Vector3;
+  public native let entryPointPos: Vector3;
+  public native let entryPointDir: Vector4;
+  public native let animationName: CName;
+  public native let isInSmartObject: Bool;
+}

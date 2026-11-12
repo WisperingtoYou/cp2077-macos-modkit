@@ -1,0 +1,39 @@
+public native class CParticleEmitter extends IParticleModule {
+  public native let modules: array<ref<IParticleModule>>;
+  public native let positionX: Int32;
+  public native let positionY: Int32;
+  public native let material: ResourceRef; // rRef<IMaterial>
+  public native let localMaterialInstance: ref<IMaterial>;
+  public native let maxParticles: Uint16;
+  public native let diffuseWrapFactor: Float;
+  public native let backLightingFactor: Float;
+  public native let lightingMipBias: Uint32;
+  public native let emitterLoops: Int8;
+  public native let particleDrawer: ref<IParticleDrawer>;
+  public native let decalSpawner: ref<CDecalSpawner>;
+  public native let maskInsideCar: Bool;
+  public native let maskInsideInterior: Bool;
+  public native let maskAboveWater: Bool;
+  public native let maskUnderWater: Bool;
+  public native let useSubFrameEmission: Bool;
+  public native let keepSimulationLocal: Bool;
+  public native let killOnCollision: Bool;
+  public native let initialParticleCount: Uint8;
+  public native let envColorGroup: EEnvColorGroup;
+  public native let emitterGroup: EEmitterGroup;
+  public native let renderObjectType: ERenderObjectType;
+  public native let windInfluence: Float;
+  public native let internalPriority: Uint8;
+  public native let lods: array<SParticleEmitterLODLevel>;
+  public native let renderResourceBlob: ref<IRenderResourceBlob>;
+  public native let Enabled: Bool;
+  public native let Relative: Bool;
+  public native let UseEnvironmentFogColor: Bool;
+  public native let Color: HDRColor;
+  public native let Size: Float;
+  public native let Density: Float;
+  public native let Falloff: Float;
+  public native let NoiseScale: Float;
+  public native let NoiseThreshold: Float;
+  public native let NoiseVelocity: Vector3;
+}

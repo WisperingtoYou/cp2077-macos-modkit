@@ -1,0 +1,35 @@
+public native struct interopReExportOptions {
+  public native let occlusionExportOptNames: array<CName>;
+  public native let occlusionExportOptValues: array<Bool>;
+  public native let typeExportOptions: array<Bool>;
+  public native let filePath: String;
+  public native let runDispatcher: Bool;
+  public native let files: array<String>;
+  public native let depotPath: String;
+  public native let maskDumpFilePath: AbsolutePathSerializable;
+  public native let exportMaterials: Bool;
+  public native let hjobToken: String;
+  public native let hjobParams: String;
+  public native let hjobParamsOutput: String;
+  public native let assetName: String;
+  public native let rigs: String;
+  public native let hjobTemplate: String;
+  public native let bodyType: String;
+  public native let baseType: String;
+  public native let exportBounds: Box;
+  public native let referencePoint: Vector3;
+  public native let assetPaths: array<String>;
+  public native let jsonFile: AbsolutePathSerializable;
+  public native let prefabType: Uint8;
+  public native let proxyFromProxy: Bool;
+  public native let onlyProxy: Bool;
+  public native let exportTextures: Bool;
+  public native let minBBoxDiag: Double;
+  public native let asBBoxThreshold: Double;
+  public native let asBBoxPrefabsThreshold: Double;
+  public native let asBBoxPrefabsSubdivide: Double;
+  public native let asBBoxPrefabsForceLast: Bool;
+  public native let skipCollisions: Bool;
+  public native let preferSmallProxiesTreshold: Float;
+  public native let generatePlayerBlockingCollision: Bool;
+}

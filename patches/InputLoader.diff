@@ -1,0 +1,356 @@
+Upstream: https://github.com/jackhumbert/cyberpunk2077-input-loader
+Base commit: f92f7dc97026eaa4208f530fa91c2c715ace7aff
+Apply: git -C <checkout of that commit> apply InputLoader.diff
+
+diff --git a/.gitignore b/.gitignore
+index 466a742..485b3ca 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -4,3 +4,4 @@ game_dir_debug/
+ game_dir_requirements/
+ .cache/
+ *.zip
++build-mac/
+diff --git a/include/InputLoader.hpp b/include/InputLoader.hpp
+index 1ef6557..1bee96f 100644
+--- a/include/InputLoader.hpp
++++ b/include/InputLoader.hpp
+@@ -3,8 +3,16 @@
+ #include <cstdint>
+ #include <filesystem>
+ #include <RED4ext/RED4ext.hpp>
++#ifdef __APPLE__
++namespace RED4ext
++{
++using namespace RED4ext::v1;
++}
++#endif
+ 
+-#ifdef DLLDIR_EX
++#if defined(__APPLE__)
++   #define DLLDIR  __attribute__((visibility("default")))
++#elif defined(DLLDIR_EX)
+    #define DLLDIR  __declspec(dllexport)   // export DLL information
+ #else
+    #define DLLDIR  __declspec(dllimport)   // import DLL information
+diff --git a/macos/CMakeLists.txt b/macos/CMakeLists.txt
+new file mode 100644
+index 0000000..44965e3
+--- /dev/null
++++ b/macos/CMakeLists.txt
+@@ -0,0 +1,37 @@
++cmake_minimum_required(VERSION 3.20)
++project(InputLoader VERSION 0.2.3 LANGUAGES CXX)
++
++# macOS arm64 build of Input Loader as a RED4ext-macos plugin: cmake -S macos -B build-mac.
++# The Windows build stays on the top-level CMakeLists.txt (cyberpunk_cmake).
++set(CMAKE_CXX_STANDARD 20)
++set(CMAKE_CXX_STANDARD_REQUIRED ON)
++set(CMAKE_OSX_ARCHITECTURES "arm64")
++set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0")
++set(CMAKE_POSITION_INDEPENDENT_CODE ON)
++set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
++set(ROOT "${CMAKE_CURRENT_SOURCE_DIR}/..")
++
++set(RED4EXT_SDK_DIR "${ROOT}/../RED4ext.SDK" CACHE PATH "RED4ext.SDK (macOS) repository root")
++if(NOT EXISTS "${RED4EXT_SDK_DIR}/include/RED4ext/RED4ext.hpp")
++    message(FATAL_ERROR "RED4ext.SDK not found at ${RED4EXT_SDK_DIR}; pass -DRED4EXT_SDK_DIR=<path>.")
++endif()
++
++include(FetchContent)
++set(SPDLOG_BUILD_SHARED OFF CACHE BOOL "" FORCE)
++FetchContent_Declare(spdlog
++    URL https://github.com/gabime/spdlog/archive/refs/tags/v1.16.0.tar.gz
++    URL_HASH SHA256=8741753e488a78dd0d0024c980e1fb5b5c85888447e309d9cb9d949bdb52aa3e)
++FetchContent_Declare(pugixml
++    URL https://github.com/zeux/pugixml/archive/refs/tags/v1.14.tar.gz
++    URL_HASH SHA256=610f98375424b5614754a6f34a491adbddaaec074e9044577d965160ec103d2e)
++FetchContent_MakeAvailable(spdlog pugixml)
++
++add_library(InputLoader SHARED "${ROOT}/src/Main.cpp" "${ROOT}/src/Utils.cpp")
++set_target_properties(InputLoader PROPERTIES OUTPUT_NAME "InputLoader" PREFIX "" SUFFIX ".dylib")
++target_include_directories(InputLoader PRIVATE "${ROOT}/src" "${ROOT}/include" "${RED4EXT_SDK_DIR}/include")
++target_compile_definitions(InputLoader PRIVATE RED4EXT_PLATFORM_MACOS
++    MOD_VERSION_STR="${PROJECT_VERSION}" MOD_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
++    MOD_VERSION_MINOR=${PROJECT_VERSION_MINOR} MOD_VERSION_PATCH=${PROJECT_VERSION_PATCH})
++target_compile_options(InputLoader PRIVATE -fvisibility=hidden -Wno-deprecated-declarations)
++target_link_libraries(InputLoader PRIVATE spdlog::spdlog pugixml::static)
++target_link_options(InputLoader PRIVATE -undefined dynamic_lookup)
+diff --git a/src/Main.cpp b/src/Main.cpp
+index ccfa9ab..c99e5d0 100644
+--- a/src/Main.cpp
++++ b/src/Main.cpp
+@@ -1,3 +1,5 @@
++#include <algorithm>
++#include <cctype>
+ #include <iostream>
+ 
+ #include <RED4ext/RED4ext.hpp>
+@@ -8,7 +10,12 @@
+ #include "stdafx.hpp"
+ #include <InputLoader.hpp>
+ 
++#ifdef __APPLE__
++#include <CommonCrypto/CommonDigest.h>
++#include <dlfcn.h>
++#else
+ #include <bcrypt.h>
++#endif
+ 
+ namespace InputLoader {
+ pugi::xml_document LoadDocument(std::filesystem::path path,
+@@ -68,8 +75,15 @@ static std::vector<std::filesystem::path> document_paths;
+ // it names from r6/. If the ini survives while the cache xmls are missing or
+ // empty (deleted cache, renamed r6/cache, partial uninstall) the game shows
+ // "PRESS [None] TO CONTINUE" and crashes on Space, so never leave that state.
++#ifdef __APPLE__
++// The macOS game reads its platform inis from platform/mac (verified with an open() probe: it then loads
++// r6/cache/inputContexts.xml and r6/cache/inputUserMappings.xml, backslash paths included).
++static const std::filesystem::path iniPath =
++    "engine/config/platform/mac/input_loader.ini";
++#else
+ static const std::filesystem::path iniPath =
+     "engine/config/platform/pc/input_loader.ini";
++#endif
+ static const std::filesystem::path cacheDir = "r6/cache";
+ static const std::filesystem::path cacheContextsPath =
+     "r6/cache/inputContexts.xml";
+@@ -118,6 +132,16 @@ std::string Sha256Hex(const std::filesystem::path &path) {
+   std::string data((std::istreambuf_iterator<char>(in)),
+                    std::istreambuf_iterator<char>());
+   std::string hex;
++#ifdef __APPLE__
++  unsigned char digest[CC_SHA256_DIGEST_LENGTH];
++  CC_SHA256(data.data(), static_cast<CC_LONG>(data.size()), digest);
++  static const char *digits = "0123456789abcdef";
++  for (unsigned char b : digest) {
++    hex += digits[b >> 4];
++    hex += digits[b & 15];
++  }
++  return hex;
++#else
+   BCRYPT_ALG_HANDLE alg = nullptr;
+   if (!BCRYPT_SUCCESS(
+           BCryptOpenAlgorithmProvider(&alg, BCRYPT_SHA256_ALGORITHM, nullptr, 0)))
+@@ -138,6 +162,7 @@ std::string Sha256Hex(const std::filesystem::path &path) {
+   }
+   BCryptCloseAlgorithmProvider(alg, 0);
+   return hex;
++#endif
+ }
+ 
+ template <size_t N>
+@@ -272,12 +297,20 @@ void MergeDocument(std::filesystem::path path);
+ RED4EXT_C_EXPORT void Add(RED4ext::PluginHandle aHandle, const wchar_t * str) {
+   std::filesystem::path path(str);
+   if (path.is_relative()) {
++#ifdef __APPLE__
++    // Relative to the calling plugin's folder, as on Windows. The handle is the caller's dlopen handle, which dladdr
++    // cannot resolve, so take the folder of the caller's code address instead.
++    Dl_info info{};
++    if (dladdr(__builtin_return_address(0), &info) && info.dli_fname)
++      path = std::filesystem::path(info.dli_fname).parent_path() / path;
++#else
+     char dllFilePath[513] = {0};
+     GetModuleFileNameA(aHandle, dllFilePath, 512);
+     std::filesystem::path dllPath(dllFilePath);
+     path = dllPath.parent_path() / path;
++#endif
+   }
+-  spdlog::info(L"Will load document: {}", path.c_str());
++  spdlog::info("Will load document: {}", path.string());
+   document_paths.emplace_back(path);
+   // Plugins that load after Input Loader register here after the merge at
+   // Load already ran; merge and save right away so the cache is complete
+@@ -315,7 +348,7 @@ void MergeDocument(std::filesystem::path path) {
+   // pugi::xml_document modDocument =
+   // LoadDocument("r6/input/flight_control.xml");
+   pugi::xml_document modDocument = LoadDocument(path);
+-  spdlog::info(L"Loading document: {}", path.c_str());
++  spdlog::info("Loading document: {}", path.string());
+ 
+   // process bindings
+   for (pugi::xml_node modNode : modDocument.child("bindings").children()) {
+@@ -385,19 +418,42 @@ void MergeAll() {
+     }
+     // load xml documents in r6/input
+     spdlog::info("Loading input configs from r6/input");
++#ifdef __APPLE__
++    // Windows walks r6/input in case-insensitive name order, which decides
++    // which mod wins a conflicting binding; APFS returns entries in no
++    // particular order, so sort the same way (component by component).
++    std::vector<std::filesystem::directory_entry> entries(
++        std::filesystem::recursive_directory_iterator(inputDir), {});
++    std::sort(entries.begin(), entries.end(), [](const auto &l, const auto &r) {
++      auto a = l.path().begin(), ae = l.path().end();
++      auto b = r.path().begin(), be = r.path().end();
++      for (; a != ae && b != be; ++a, ++b) {
++        auto x = a->string(), y = b->string();
++        std::transform(x.begin(), x.end(), x.begin(),
++                       [](unsigned char c) { return std::toupper(c); });
++        std::transform(y.begin(), y.end(), y.begin(),
++                       [](unsigned char c) { return std::toupper(c); });
++        if (x != y)
++          return x < y;
++      }
++      return a == ae && b != be;
++    });
++    for (const auto &entry : entries) {
++#else
+     for (const auto &entry :
+          std::filesystem::recursive_directory_iterator(inputDir)) {
++#endif
+       const auto &path = entry.path();
+       if (entry.path().extension() == ".xml") {
+         try {
+           MergeDocument(path);
+         } catch (const std::exception &ex) {
+-          spdlog::error(L"An exception occured while trying to load '{}'",
+-                        path.c_str());
++          spdlog::error("An exception occured while trying to load '{}'",
++                        path.string());
+           // spdlog::error(ex.what());
+         } catch (...) {
+-          spdlog::error(L"An unknown error occured while trying to load '{}'",
+-                        path.c_str());
++          spdlog::error("An unknown error occured while trying to load '{}'",
++                        path.string());
+         }
+       }
+     }
+@@ -406,21 +462,21 @@ void MergeAll() {
+       try {
+         MergeDocument(path);
+       } catch (const std::exception &ex) {
+-        spdlog::error(L"An exception occured while trying to load '{}'",
+-                      path.c_str());
++        spdlog::error("An exception occured while trying to load '{}'",
++                      path.string());
+         // spdlog::error(ex.what());
+       } catch (...) {
+-        spdlog::error(L"An unknown error occured while trying to load '{}'",
+-                      path.c_str());
++        spdlog::error("An unknown error occured while trying to load '{}'",
++                      path.string());
+       }
+     }
+   } catch (const std::exception &ex) {
+-    spdlog::error(L"An exception occured while reading the directory '{}'",
+-                  inputDir.c_str());
++    spdlog::error("An exception occured while reading the directory '{}'",
++                  inputDir.string());
+     // spdlog::error(ex.what());
+   } catch (...) {
+-    spdlog::error(L"An unknown error occured while reading the directory '{}'",
+-                  inputDir.c_str());
++    spdlog::error("An unknown error occured while reading the directory '{}'",
++                  inputDir.string());
+   }
+ 
+   // save files
+@@ -437,6 +493,12 @@ bool RefreshInputConfigs(RED4ext::CGameApplication *) {
+ 
+ } // namespace InputLoader
+ 
++#ifdef __APPLE__
++__attribute__((constructor)) static void InputLoaderInit() {
++  Utils::CreateLogger();
++  spdlog::info("Starting up Input Loader {} (macOS)", MOD_VERSION_STR);
++}
++#else
+ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
+   switch (fdwReason) {
+   case DLL_PROCESS_ATTACH:
+@@ -446,6 +508,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
+   }
+   return true;
+ }
++#endif
+ 
+ RED4EXT_C_EXPORT bool RED4EXT_CALL Main(RED4ext::PluginHandle aHandle,
+                                         RED4ext::EMainReason aReason,
+diff --git a/src/Utils.cpp b/src/Utils.cpp
+index 103e6aa..96e8867 100644
+--- a/src/Utils.cpp
++++ b/src/Utils.cpp
+@@ -1,6 +1,8 @@
+ #include "stdafx.hpp"
+ #include "Utils.hpp"
+ 
++#include <cstring>
++
+ #include <spdlog/sinks/basic_file_sink.h>
+ #include <spdlog/sinks/stdout_color_sinks.h>
+ 
+@@ -8,7 +10,13 @@ void Utils::CreateLogger()
+ {
+     auto rootDir = GetRootDir();
+     auto red4extDir = rootDir / L"red4ext";
++#ifdef __APPLE__
++    // RED4ext's log rotation deletes files in red4ext/logs that don't start with a plugin name ("input loader"),
++    // so log next to the plugin, as TweakXL and Codeware do.
++    auto logsDir = red4extDir / L"plugins" / L"InputLoader";
++#else
+     auto logsDir = red4extDir / L"logs";
++#endif
+     spdlog::filename_t logFile = (logsDir / L"input_loader.log");
+ 
+     auto console = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+@@ -23,6 +31,21 @@ void Utils::CreateLogger()
+     spdlog::set_level(spdlog::level::trace);
+ }
+ 
++#ifdef __APPLE__
++#include <mach-o/dyld.h>
++
++std::filesystem::path Utils::GetRootDir()
++{
++    // <root>/Cyberpunk2077.app/Contents/MacOS/Cyberpunk2077
++    uint32_t size = 0;
++    _NSGetExecutablePath(nullptr, &size);
++    std::string filename(size, '\0');
++    if (_NSGetExecutablePath(filename.data(), &size) != 0)
++        return {};
++    filename.resize(std::strlen(filename.c_str()));
++    return std::filesystem::weakly_canonical(filename).parent_path().parent_path().parent_path().parent_path();
++}
++#else
+ std::filesystem::path Utils::GetRootDir()
+ {
+     constexpr auto pathLength = MAX_PATH + 1;
+@@ -48,6 +71,7 @@ std::filesystem::path Utils::GetRootDir()
+ 
+     return rootDir;
+ }
++#endif
+ 
+ std::wstring Utils::ToWString(const char* aText)
+ {
+diff --git a/src/stdafx.hpp b/src/stdafx.hpp
+index e3c5f41..2cade2d 100644
+--- a/src/stdafx.hpp
++++ b/src/stdafx.hpp
+@@ -6,9 +6,23 @@
+ #include <memory>
+ #include <vector>
+ 
++#ifndef __APPLE__
+ #include <Windows.h>
+ #include <TlHelp32.h>
++#endif
+ // #include <detours.h>
+ 
+ #include <RED4ext/RED4ext.hpp>
+ #include <spdlog/spdlog.h>
++
++#ifdef __APPLE__
++// The macOS SDK fork only has the v1 API names; map the unversioned ones this plugin uses.
++namespace RED4ext
++{
++using namespace RED4ext::v1;
++}
++#define RED4EXT_SEMVER RED4EXT_V1_SEMVER
++#define RED4EXT_RUNTIME_INDEPENDENT RED4EXT_V1_RUNTIME_VERSION_INDEPENDENT
++#define RED4EXT_SDK_LATEST RED4EXT_V1_SDK_VERSION_1_0_0_COMPAT_0_5_0
++#define RED4EXT_API_VERSION_LATEST RED4EXT_API_VERSION_1_COMPAT_0
++#endif

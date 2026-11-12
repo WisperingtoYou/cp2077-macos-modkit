@@ -1,0 +1,68 @@
+Upstream: https://github.com/jackmaxwil/cp2077-tweak-xl-macos
+Base commit: 4ba45652478e81969c71a393097d0baf8a817c13
+Apply: git -C <checkout of that commit> apply TweakXL.diff
+
+diff --git a/src/App/Tweaks/Batch/TweakChangeset.cpp b/src/App/Tweaks/Batch/TweakChangeset.cpp
+index 9369aeb..e01f86f 100644
+--- a/src/App/Tweaks/Batch/TweakChangeset.cpp
++++ b/src/App/Tweaks/Batch/TweakChangeset.cpp
+@@ -194,14 +194,11 @@ void App::TweakChangeset::Commit(const Core::SharedPtr<Red::TweakDBManager>& aMa
+         aChangelog->ForgetResourcePaths();
+     }
+ 
+-    if (!m_pendingNames.empty())
++    // macOS: inline instead of StartAsyncCommitJob. As a job it read m_pendingRecords while this thread was still
++    // committing and crashed in GetRecordType with garbage at startup.
++    for (const auto& [id, name] : m_pendingNames)
+     {
+-        StartAsyncCommitJob([&]() {
+-            for (const auto& [id, name] : m_pendingNames)
+-            {
+-                aManager->RegisterName(id, name, GetRecordType(id));
+-            }
+-        });
++        aManager->RegisterName(id, name, GetRecordType(id));
+     }
+ 
+     LogDebug("Resolving inheritance...");
+diff --git a/src/App/Tweaks/Declarative/TweakImporter.cpp b/src/App/Tweaks/Declarative/TweakImporter.cpp
+index c9a48ee..68d6439 100644
+--- a/src/App/Tweaks/Declarative/TweakImporter.cpp
++++ b/src/App/Tweaks/Declarative/TweakImporter.cpp
+@@ -1,4 +1,7 @@
+ #include "TweakImporter.hpp"
++
++#include <algorithm>
++#include <cctype>
+ #include "App/Tweaks/Batch/TweakChangeset.hpp"
+ #include "App/Tweaks/Declarative/Yaml/YamlReader.hpp"
+ #include "App/Tweaks/Declarative/Red/RedReader.hpp"
+@@ -72,6 +75,28 @@ void App::TweakImporter::ImportTweaks(const Core::Vector<std::filesystem::path>&
+             LogWarning("Can't import \"{}\".", importPath.string());
+         }
+ 
++#ifdef __APPLE__
++        // Windows (NTFS) lists every folder in name order, case-insensitively, and mods rely on it: VendorsXL names its
++        // folder "##########VendorsXL" so its base records exist before the stores that clone them. APFS returns
++        // entries in no particular order, so sort the way a Windows walk visits them (component by component).
++        auto windowsOrder = [](const auto& aLeft, const auto& aRight) {
++            auto left = aLeft.first.begin(), leftEnd = aLeft.first.end();
++            auto right = aRight.first.begin(), rightEnd = aRight.first.end();
++            for (; left != leftEnd && right != rightEnd; ++left, ++right)
++            {
++                auto a = left->string(), b = right->string();
++                std::transform(a.begin(), a.end(), a.begin(), [](unsigned char c) { return std::toupper(c); });
++                std::transform(b.begin(), b.end(), b.begin(), [](unsigned char c) { return std::toupper(c); });
++                if (a != b)
++                    return a < b;
++            }
++            return left == leftEnd && right != rightEnd;
++        };
++        std::sort(firstPriorityPaths.begin(), firstPriorityPaths.end(), windowsOrder);
++        std::sort(secondPriorityPaths.begin(), secondPriorityPaths.end(), windowsOrder);
++        std::sort(lastPriorityPaths.begin(), lastPriorityPaths.end(), windowsOrder);
++#endif
++
+         for (const auto& [importPath, importDir] : firstPriorityPaths)
+         {
+             Read(changeset, importPath, importDir);

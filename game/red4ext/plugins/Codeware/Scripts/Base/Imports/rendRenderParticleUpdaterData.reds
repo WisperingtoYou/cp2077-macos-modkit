@@ -1,0 +1,22 @@
+public native struct rendRenderParticleUpdaterData {
+  public native let modifOffset: Uint32;
+  public native let animFrameInit: array<Float>;
+  public native let turbulenceNoiseInterval: Float;
+  public native let turbulenceDuration: Float;
+  public native let collisionMask: Uint64;
+  public native let collisionDynamicFriction: Float;
+  public native let collisionStaticFriction: Float;
+  public native let collisionRestitution: Float;
+  public native let collisionVelocityDamp: Float;
+  public native let collisionDisableGravity: Bool;
+  public native let collisionRadius: Float;
+  public native let collisionEffectMask: Uint32;
+  public native let maxCollisions: Uint8;
+  public native let eventGenerate: CName;
+  public native let eventReceive: CName;
+  public native let eventFrequency: Float;
+  public native let eventProbability: Float;
+  public native let noiseType: Uint8;
+  public native let randomPerChannel: Bool;
+  public native let eventSpawnObject: Uint8;
+}

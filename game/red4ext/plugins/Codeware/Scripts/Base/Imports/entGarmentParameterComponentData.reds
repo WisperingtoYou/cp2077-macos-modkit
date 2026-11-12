@@ -1,0 +1,21 @@
+public native struct entGarmentParameterComponentData {
+  public native let componentID: CRUID;
+  public native let meshGeometryHash: Uint64;
+  public native let visibleTrangleIndexBufferHash: Uint64;
+  public native let chunks: array<entGarmentParameterChunkData>;
+  public native let chunksCount: Uint32;
+  public native let hideComponent: Bool;
+  public native let bendPowerMultiplier: Float;
+  public native let bendPowerOffset: Float;
+  public native let smoothingStrength: Float;
+  public native let smoothingThreshold: Float;
+  public native let smoothingExponent: Float;
+  public native let smoothNormalsEnabled: Bool;
+  public native let smoothingNumNeighbours: Uint32;
+  public native let garmentBorderThreshold: Float;
+  public native let removeHiddenTriangles: Bool;
+  public native let disableGarment: Bool;
+  public native let mergeWithInnerLayer: Bool;
+  public native let numIndices: Uint32;
+  public native let numOffsets: Uint32;
+}

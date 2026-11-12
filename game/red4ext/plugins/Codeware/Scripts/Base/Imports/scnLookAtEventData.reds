@@ -1,0 +1,25 @@
+public native struct scnLookAtEventData {
+  public native let id: Uint32;
+  public native let enable: Bool;
+  public native let singleBodyPartName: CName;
+  public native let singleTargetSlot: CName;
+  public native let bodyTargetSlot: CName;
+  public native let headTargetSlot: CName;
+  public native let eyesTargetSlot: CName;
+  public native let singleWeight: Float;
+  public native let bodyWeight: Float;
+  public native let headWeight: Float;
+  public native let eyesWeight: Float;
+  public native let useSingleWeightCurve: Bool;
+  public native let useBodyWeightCurve: Bool;
+  public native let useHeadWeightCurve: Bool;
+  public native let useEyesWeightCurve: Bool;
+  public native let singleWeightCurve: CurveDataFloat;
+  public native let bodyWeightCurve: CurveDataFloat;
+  public native let headWeightCurve: CurveDataFloat;
+  public native let eyesWeightCurve: CurveDataFloat;
+  public native let singleLimits: LookAtLimits;
+  public native let bodyLimits: LookAtLimits;
+  public native let headLimits: LookAtLimits;
+  public native let eyesLimits: LookAtLimits;
+}
