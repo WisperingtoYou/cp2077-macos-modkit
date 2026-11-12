@@ -4,6 +4,20 @@ The main Cyberpunk 2077 mod frameworks, built for the native macOS version of th
 
 The kit contains the frameworks only, not the mods themselves. It was tested with about 600 mods installed at the same time.
 
+## Contents
+
+- [Requirements](#requirements)
+- [What is included](#what-is-included)
+- [Install](#install)
+- [Usage](#usage)
+- [How it works](#how-it-works)
+- [Building from source](#building-from-source)
+- [Known issues](#known-issues)
+- [Uninstall](#uninstall)
+- [Credits and changes](#credits-and-changes)
+- [Disclaimer and contact](#disclaimer-and-contact)
+- [Licence](#licence)
+
 ## Requirements
 
 - Apple silicon Mac. Tested on an M5 Pro with macOS 27.2.
@@ -68,6 +82,13 @@ Modded play runs `launch_red4ext.sh`. Vanilla play uses Steam's own launch, and 
 
 ## How it works
 
+You do not need this section to use the kit.
+
+<details>
+<summary>Show the technical details</summary>
+
+<br>
+
 **Getting code into the game.** The Steam binary has the hardened runtime. CD PROJEKT already signs it with `allow-dyld-environment-variables` and `disable-library-validation`, so `DYLD_INSERT_LIBRARIES` can load RED4ext. But installing hooks writes to code pages, and that also needs `allow-unsigned-executable-memory`. `install_macos.sh` re-signs the binary ad hoc with these three entitlements. The re-signed binary loses CDPR's own `sustained-execution` entitlement, because an ad hoc signature cannot keep it. To undo the re-sign, use Steam > Verify integrity of game files.
 
 **Launch.** `launch_red4ext.sh` does these steps:
@@ -101,49 +122,7 @@ Each binding that we changed has a comment and a `static_assert` where possible.
 
 **exEntitySpawner shim.** CET on Windows provides `exEntitySpawner`, and the Mac CET build does not. The shim (`r6/scripts/macOS exEntitySpawner`) gives the same API through Codeware's `DynamicEntitySystem`. One difference: the spawn is asynchronous. A Lua mod that uses the entity right after `Spawn` must wait until `Game.FindEntityByID` returns it.
 
-## Changes to the upstream projects
-
-The full diffs are in `patches/`. Each file starts with the upstream URL and the base commit it applies to. The main changes are:
-
-- **RED4ext** (on jackmaxwil's macOS fork):
-  - Plugins load in NTFS name order.
-  - A trampoline page pool is used when a hook target is too far for a near branch.
-  - A crash handler writes a signal-safe report to `red4ext/logs/crash_report.txt`.
-  - `DYLD_INSERT_LIBRARIES` is cleared after load, so child processes of the game do not abort.
-  - Plugin logs keep their names when the logs rotate.
-  - The launch script detects compile failures and restores the vanilla scripts.
-- **RED4ext.SDK** (on jackmaxwil's macOS fork):
-  - 113 new and 24 corrected Mac addresses.
-  - sret and vtable fixes for `IType::FromString`, `IRTTISystem::GetFunction`, `GetPersistentState`, `FindEntity`, `IsSavingLocked` and `IEntityStubSystem::CreateStub`.
-  - `JobDispatcher` calls pass the dispatcher in `x0`.
-  - `ExecuteFunction` no longer wraps game systems in a temporary `Handle`. That handle freed `cpPlayerSystem` when it was destroyed, for example in Lua `Game.AddToInventory`.
-- **Cyber Engine Tweaks** (on upstream CET): the macOS platform layer.
-  - CMake build, a Metal renderer and AppKit input.
-  - Game hooks for 2.3.1 arm64, and the arm64 thunk pool.
-  - The Lua image API on Metal.
-  - TweakDB loading on a thread with a 16 MiB stack, because the default 512 KiB stack overflowed.
-  - Fixes for a font atlas use-after-free, dangling captures in `Override` and a `GetAbsolutePath` recursion.
-  - Key and mouse releases now reach the game while the overlay is open. Cmd+V paste works in text fields.
-  - The full list is in `docs/MACOS_PORT.md` in the diff.
-- **Codeware** (on upstream Codeware): the macOS port.
-  - Platform layer and the sret/vtable bindings for ink, entity spawning, resources, persistence and input.
-  - `static_assert`s on the ABI and a binding table in `docs/MACOS_PORT.md`.
-  - Functions that need native types missing from the Mac build fail closed: they return nothing and do not crash.
-- **TweakXL** (on jackmaxwil's macOS fork):
-  - Files load in NTFS order.
-  - Record names are registered inline at startup. Before, a parallel job read the pending records while they were still being written, and `GetRecordType` crashed.
-- **ArchiveXL** (on jackmaxwil's macOS fork):
-  - Files load in NTFS order.
-  - These features are now enabled: collision deletions in streaming sectors, hot reload, the WorldWidgetComponent limit patch, PuppetState enums, the Transmog template override and the nails colour fallback.
-  - A race in `ArchiveXL.Reload()` is fixed.
-  - A garment mesh that failed to load is skipped and logged. Before, it crashed `RefreshAppearance`.
-- **Input Loader**, **Mod Settings**: built as macOS RED4ext plugins, with files loaded in NTFS order. Mod Settings no longer touches script handles at load time, and it registers its archive after ArchiveXL is ready.
-- **redscript**: sources compile in NTFS order. `REDSCRIPT_NO_POPUP=1` turns off the error dialog, so the launcher can read the errors from the output.
-
-Changes in this release, compared with the setup it came from:
-- The launcher no longer sets `RED4EXT_ALLOW_STOCK=1`. That variable skipped the signature check and only works on a Mac with modified SIP. Other users need the re-signed binary instead.
-- The launcher's script check now runs `scc` with `REDSCRIPT_NO_POPUP=1`.
-- The build paths compiled into four binaries were made anonymous.
+</details>
 
 ## Building from source
 
@@ -176,27 +155,88 @@ Then follow that project's own build instructions. The C++ plugins build with CM
    - `_modkit_backup/`
    - `Cyberpunk2077.orig`
 
-## Credits
+## Credits and changes
 
-This kit is mostly other people's work. We ported, fixed and packaged it.
+This kit is mostly other people's work. We ported, fixed and packaged it. For each project, this section says who made it, what this kit uses, and what we changed. The full diffs are in `patches/`. Each file starts with the upstream URL and the base commit it applies to. The licence texts are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-- **WopsS (Octavian Dima)**: [RED4ext](https://github.com/WopsS/RED4ext) and [RED4ext.SDK](https://github.com/WopsS/RED4ext.SDK). These are the plugin loader and the reverse-engineered game type headers that all the plugins build on. jekky and Jack Humbert also contributed to them.
-- **jackmaxwil**: the macOS forks of [RED4ext](https://github.com/jackmaxwil/RED4ext-macos), [RED4ext.SDK](https://github.com/jackmaxwil/RED4ext.SDK-macos), [TweakXL](https://github.com/jackmaxwil/cp2077-tweak-xl-macos) and [ArchiveXL](https://github.com/jackmaxwil/cp2077-archive-xl-macos). Their work includes:
-  - the Mach-O loader, the hash-to-address database with its UUID gate, and native inline hooking,
-  - the codesign and install scripts (`install_macos.sh`, `codesign_macos.sh`),
-  - the first Mac builds of TweakXL and ArchiveXL.
+### RED4ext and RED4ext.SDK
 
-  This kit starts from those forks. Our changes are listed above.
-- **yamashi, Maxime and the CET team**: [Cyber Engine Tweaks](https://github.com/maximegmd/CyberEngineTweaks), the Lua scripting runtime and overlay. Their code is used as is. We added the macOS platform layer and the fixes listed above.
-- **psiberx (Pavel Siberx)**: [Codeware](https://github.com/psiberx/cp2077-codeware), [TweakXL](https://github.com/psiberx/cp2077-tweak-xl) and [ArchiveXL](https://github.com/psiberx/cp2077-archive-xl). The Codeware macOS port is ours. TweakXL and ArchiveXL come through jackmaxwil's forks.
-- **Jack Humbert**: [Input Loader](https://github.com/jackhumbert/cyberpunk2077-input-loader) and [Mod Settings](https://github.com/jackhumbert/mod_settings). We added the macOS build and the fixes listed above.
-- **jac3km4 (jekky)**: [redscript](https://github.com/jac3km4/redscript), the script compiler. We changed the file order and added the popup switch.
+[RED4ext](https://github.com/WopsS/RED4ext) and [RED4ext.SDK](https://github.com/WopsS/RED4ext.SDK) are by **WopsS (Octavian Dima)**, with contributions from jekky and Jack Humbert. They are the plugin loader and the reverse-engineered game type headers that all the plugins build on.
+
+**jackmaxwil** made the macOS forks ([RED4ext-macos](https://github.com/jackmaxwil/RED4ext-macos), [RED4ext.SDK-macos](https://github.com/jackmaxwil/RED4ext.SDK-macos)). Their work includes the Mach-O loader, the hash-to-address database with its UUID gate, native inline hooking, and the codesign and install scripts (`install_macos.sh`, `codesign_macos.sh`). This kit starts from those forks.
+
+Our changes to RED4ext:
+- Plugins load in NTFS name order.
+- A trampoline page pool is used when a hook target is too far for a near branch.
+- A crash handler writes a signal-safe report to `red4ext/logs/crash_report.txt`.
+- `DYLD_INSERT_LIBRARIES` is cleared after load, so child processes of the game do not abort.
+- Plugin logs keep their names when the logs rotate.
+- The launch script detects compile failures and restores the vanilla scripts.
+
+Our changes to RED4ext.SDK:
+- 113 new and 24 corrected Mac addresses.
+- sret and vtable fixes for `IType::FromString`, `IRTTISystem::GetFunction`, `GetPersistentState`, `FindEntity`, `IsSavingLocked` and `IEntityStubSystem::CreateStub`.
+- `JobDispatcher` calls pass the dispatcher in `x0`.
+- `ExecuteFunction` no longer wraps game systems in a temporary `Handle`. That handle freed `cpPlayerSystem` when it was destroyed, for example in Lua `Game.AddToInventory`.
+
+### Cyber Engine Tweaks
+
+[Cyber Engine Tweaks](https://github.com/maximegmd/CyberEngineTweaks) is by **yamashi, Maxime and the CET team**: the Lua scripting runtime and overlay. Their code is used as is.
+
+Our changes, the macOS platform layer:
+- CMake build, a Metal renderer and AppKit input.
+- Game hooks for 2.3.1 arm64, and the arm64 thunk pool.
+- The Lua image API on Metal.
+- TweakDB loading on a thread with a 16 MiB stack, because the default 512 KiB stack overflowed.
+- Fixes for a font atlas use-after-free, dangling captures in `Override` and a `GetAbsolutePath` recursion.
+- Key and mouse releases now reach the game while the overlay is open. Cmd+V paste works in text fields.
+- The full list is in `docs/MACOS_PORT.md` in the diff.
+
+### Codeware
+
+[Codeware](https://github.com/psiberx/cp2077-codeware) is by **psiberx (Pavel Siberx)**.
+
+Our changes, the macOS port:
+- Platform layer and the sret/vtable bindings for ink, entity spawning, resources, persistence and input.
+- `static_assert`s on the ABI and a binding table in `docs/MACOS_PORT.md`.
+- Functions that need native types missing from the Mac build fail closed: they return nothing and do not crash.
+
+### TweakXL and ArchiveXL
+
+[TweakXL](https://github.com/psiberx/cp2077-tweak-xl) and [ArchiveXL](https://github.com/psiberx/cp2077-archive-xl) are by **psiberx (Pavel Siberx)**. **jackmaxwil** made the first Mac builds ([TweakXL macOS](https://github.com/jackmaxwil/cp2077-tweak-xl-macos), [ArchiveXL macOS](https://github.com/jackmaxwil/cp2077-archive-xl-macos)), and this kit starts from those forks.
+
+Our changes to TweakXL:
+- Files load in NTFS order.
+- Record names are registered inline at startup. Before, a parallel job read the pending records while they were still being written, and `GetRecordType` crashed.
+
+Our changes to ArchiveXL:
+- Files load in NTFS order.
+- These features are now enabled: collision deletions in streaming sectors, hot reload, the WorldWidgetComponent limit patch, PuppetState enums, the Transmog template override and the nails colour fallback.
+- A race in `ArchiveXL.Reload()` is fixed.
+- A garment mesh that failed to load is skipped and logged. Before, it crashed `RefreshAppearance`.
+
+### Input Loader and Mod Settings
+
+[Input Loader](https://github.com/jackhumbert/cyberpunk2077-input-loader) and [Mod Settings](https://github.com/jackhumbert/mod_settings) are by **Jack Humbert**.
+
+Our changes: both are built as macOS RED4ext plugins, with files loaded in NTFS order. Mod Settings no longer touches script handles at load time, and it registers its archive after ArchiveXL is ready.
+
+### redscript
+
+[redscript](https://github.com/jac3km4/redscript), the script compiler, is by **jac3km4 (jekky)**.
+
+Our changes: sources compile in NTFS order. `REDSCRIPT_NO_POPUP=1` turns off the error dialog, so the launcher can read the errors from the output.
+
+### Other references and our own work
+
 - **ysrdevs**: the technical notes of [nightcity-console-mac](https://github.com/ysrdevs/nightcity-console-mac). We used them to cross-check some CET addresses. No code was taken.
-- **Our own work**: the launcher, gpuguard, IesRaceFix, the exEntitySpawner shim, `install.sh`, the Codeware and CET macOS ports, and the fixes and addresses listed above.
+- **Our own work**: the launcher, gpuguard, IesRaceFix, the exEntitySpawner shim, `install.sh`, and the macOS ports and fixes listed above.
 
-The licence texts are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+## Disclaimer and contact
 
 This project is not affiliated with CD PROJEKT RED. Cyberpunk 2077 is a trademark of CD PROJEKT S.A. The kit contains no game files and does not ship a modified game binary: the re-sign happens on your Mac, on your own copy.
+
+Do you think a file or other content in this repository goes against a licence, a platform's rules or CD PROJEKT RED's modding guidelines? Then send a direct message on Discord to **wisperingtoyou**, and we can discuss it. This contact is only for such concerns, not for troubleshooting or support.
 
 ## Licence
 
