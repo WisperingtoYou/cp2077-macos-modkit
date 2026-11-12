@@ -24,6 +24,16 @@ struct FrameworksView: View {
                 ForEach(model.frameworks) { fw in row(fw) }
                 Text("RED4ext itself loads the frameworks and can't be turned off here; Vanilla play skips it entirely.")
                     .font(.cp(12)).foregroundStyle(Theme.textDim).padding(.top, 6)
+                if AppModel.kitDir != nil {
+                    HStack(spacing: 12) {
+                        Button(model.settingUp ? "Installing…" : "Reinstall Frameworks") { model.installFrameworks() }
+                            .buttonStyle(CPButtonStyle(tint: Theme.cyan))
+                            .disabled(model.settingUp || model.gameRunning)
+                        Text("Copies the frameworks bundled with this app into the game again (replaced files are backed up to _modkit_backup) and re-signs the game binary if needed. Use it after downloading a newer version of the app.")
+                            .font(.cp(12)).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.top, 6)
+                }
             }
             .padding(.horizontal, 28).padding(.top, 30).padding(.bottom, 28)
             .frame(maxWidth: 860, alignment: .leading)

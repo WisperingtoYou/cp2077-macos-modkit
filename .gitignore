@@ -6,3 +6,4 @@
 src/gpuguard/gpuguard.dylib
 src/gpuguard/gg_harness
 src/ies-race-fix/build/
+dist/

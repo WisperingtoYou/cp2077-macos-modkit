@@ -47,4 +47,4 @@ echo "Frameworks installed."
 
 "$GAME/red4ext/macos/scripts/install_macos.sh"
 echo
-echo "Next: build the launcher with ./launcher/make-app.sh, or start the game with \"$GAME/launch_red4ext.sh\" (Steam must be running)."
+echo "Ready. Start modded play from the launcher, or run \"$GAME/launch_red4ext.sh\" (Steam must be running)."

@@ -22,7 +22,7 @@ The kit contains the frameworks only, not the mods themselves. It was tested wit
 
 - Apple silicon Mac. Tested on an M5 Pro with macOS 27.2.
 - Cyberpunk 2077 from Steam, **version 2.3.1 (build 5314028)**. The addresses are tied to this build. To get this version, open Steam > Cyberpunk 2077 > Properties > Betas and select `2_31_old`.
-- Xcode Command Line Tools (`xcode-select --install`). You need them only to build the launcher.
+- Nothing else for the app download. Xcode Command Line Tools (`xcode-select --install`) are needed only to build from source.
 
 ## What is included
 
@@ -46,25 +46,28 @@ The kit contains the frameworks only, not the mods themselves. It was tested wit
 ## Install
 
 1. Quit the game. Install 2.3.1 with the Steam beta branch above.
-2. Download or clone this repository, then run:
-   ```bash
-   ./install.sh
-   ```
-   If the game is not in the default Steam folder, pass its path: `./install.sh "/path/to/Cyberpunk 2077"`.
-
-   The script:
+2. Download `Cyberpunk2077-Mac-Modkit-<version>.zip` from [Releases](https://github.com/WisperingtoYou/cp2077-macos-modkit/releases/latest). Unzip it and move `Cyberpunk 2077 Launcher.app` to your Applications folder.
+3. Open the app. The app is not notarized by Apple, so the first time macOS says it cannot verify the app. Open System Settings > Privacy & Security, scroll down and click **Open Anyway**. You need to do this only once.
+4. Start Steam. On the Play page of the launcher, click **Install Frameworks**. The launcher then:
    - checks that the game build matches the address database,
-   - copies `game/` into the game folder (files it replaces go to `<game>/_modkit_backup/<date>/`),
-   - removes the quarantine flag,
+   - copies the frameworks into the game folder (files it replaces go to `<game>/_modkit_backup/<date>/`),
    - re-signs the game binary (see [How it works](#how-it-works)).
 
    The original binary is kept as `Cyberpunk2077.orig`.
-3. If the re-sign step says "Operation not permitted", open System Settings > Privacy & Security > App Management, allow your terminal app, then run `./install.sh` again.
-4. Build the launcher:
-   ```bash
-   ./launcher/make-app.sh
-   ```
-   This writes `Cyberpunk 2077 Launcher.app` to the repository folder. You can also start modded play without the app: run `<game>/launch_red4ext.sh` while Steam is running.
+5. If macOS asks to allow the launcher to modify apps, allow it. If the install says "Operation not permitted", open System Settings > Privacy & Security > App Management, turn on Cyberpunk 2077 Launcher, then click Install Frameworks again.
+6. Click **Play**.
+
+The app expects the game in Steam's default folder (`~/Library/Application Support/Steam/steamapps/common/Cyberpunk 2077`). If your Steam library is somewhere else, use the script install below for the frameworks.
+
+**Updating.** Download the new release, replace the app, and click **Reinstall Frameworks** on the Frameworks page.
+
+**After a Steam update or "Verify integrity".** Steam replaces the game binary, so the Play page shows Install Frameworks again. Click it. If the game version changed (not 2.3.1 any more), modded play stays off until a release supports that version.
+
+**Install with the script instead.** Clone this repository, then run:
+```bash
+./install.sh
+```
+This does the same steps as the button. If the game is not in the default Steam folder, pass its path: `./install.sh "/path/to/Cyberpunk 2077"`. If the re-sign step says "Operation not permitted", allow your terminal app under App Management. To build the launcher yourself, run `./launcher/make-app.sh`. You can also start modded play without the app: run `<game>/launch_red4ext.sh` while Steam is running.
 
 Install mods the same way as on Windows. You can drop the archives on the launcher window, or put the files in the same folders as on Windows. Mods with only Windows parts (`.dll`, `.asi`, REDmod) cannot work. The launcher skips those parts and lists them.
 
@@ -72,9 +75,9 @@ Install mods the same way as on Windows. You can drop the archives on the launch
 
 The launcher has five pages:
 
-- **Play:** starts Modded or Vanilla play. First it checks Steam, the game build and the frameworks. If a mod's scripts do not compile, the page shows the error under that mod, with a button to turn it off.
+- **Play:** starts Modded or Vanilla play. First it checks Steam, the game build and the frameworks, and offers Install Frameworks when they are missing. If a mod's scripts do not compile, the page shows the error under that mod, with a button to turn it off.
 - **Mods:** turn mods on or off, search them, and see each mod's files and the frameworks it uses. Turning a mod off moves its files to `<game>/_mod_launcher/disabled/`. Nothing is deleted.
-- **Frameworks:** turn each RED4ext plugin on or off.
+- **Frameworks:** turn each RED4ext plugin on or off, or reinstall the frameworks that came with the app.
 - **Looks:** switch the colour-grading LUT (put LUT `.archive` files in `<game>/_LUT_options`).
 - **Profiles:** save a set of enabled mods and apply it later.
 
@@ -131,6 +134,7 @@ Each binary in `game/` can be rebuilt from its upstream repository at the base c
 git clone <upstream url> && cd <repo> && git checkout <base commit> && git apply ../patches/<name>.diff
 ```
 Then follow that project's own build instructions. The C++ plugins build with CMake against the patched RED4ext.SDK.
+- The release zip: run `./release.sh <version>`. It builds the launcher with `game/` and `install.sh` inside it and writes `dist/Cyberpunk2077-Mac-Modkit-<version>.zip`.
 - gpuguard: run `src/gpuguard/build.sh`.
 - IesRaceFix: run `cmake -S src/ies-race-fix -B build -DRED4EXT_SDK_DIR=<RED4ext.SDK-macos checkout> && cmake --build build`.
 
@@ -141,7 +145,7 @@ Then follow that project's own build instructions. The C++ plugins build with CM
 - With frame generation and heavy memory use, the GPU can stop responding and the game freezes. `gpuguard.log` records this. Turning off ray tracing, or using fewer high-resolution texture mods, helps.
 - Some Codeware functions return nothing on Mac (see `docs/MACOS_PORT.md` in `patches/Codeware.diff`). A mod that depends on them can partly fail.
 - Mods for 2.5 or later can need game features that 2.3.1 does not have.
-- The re-sign step and `install.sh` were tested on one Mac only. That Mac has a modified SIP configuration, so the kit has not yet been tested on a Mac with default SIP.
+- The app's Install Frameworks button, the re-sign step and `install.sh` were tested on one Mac only. That Mac has a modified SIP configuration, so the kit has not yet been tested on a Mac with default SIP.
 
 ## Uninstall
 

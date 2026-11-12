@@ -12,8 +12,15 @@ public struct Health: Sendable {
     /// Plugins the RED4ext gate would refuse (folder names).
     public var refusedPlugins: [String]
     public var gameRunning: Bool
+    /// The game exists in the expected folder.
+    public var gameFound: Bool
+    /// RED4ext and the launch script are in the game folder.
+    public var frameworksInstalled: Bool
+    /// The game binary carries the entitlements RED4ext needs (install_macos.sh re-signs it; a Steam update undoes it).
+    public var binaryPrepared: Bool
 
-    public var canPlayModded: Bool { gameSupported && steam != .notRunning && !gameRunning }
+    public var needsSetup: Bool { gameFound && (!frameworksInstalled || !binaryPrepared) }
+    public var canPlayModded: Bool { gameSupported && frameworksInstalled && binaryPrepared && steam != .notRunning && !gameRunning }
     public var canPlayVanilla: Bool { steam != .notRunning && !gameRunning }
 
     public static func check(game: GamePaths, gatePlugins: Bool = true) -> Health {
@@ -23,8 +30,13 @@ public struct Health: Sendable {
                 guard let r = text.range(of: #""uuid"\s*:\s*"([^"]+)""#, options: .regularExpression) else { return nil }
                 return String(text[r]).components(separatedBy: "\"").dropLast().last
             }?.replacingOccurrences(of: "-", with: "").uppercased() ?? ""
+        let fm = FileManager.default
         return Health(steam: steamState(), gameSupported: !uuid.isEmpty && uuid == dbUUID, gameUUID: uuid,
-                      refusedPlugins: gatePlugins ? refused(game) : [], gameRunning: isGameRunning())
+                      refusedPlugins: gatePlugins ? refused(game) : [], gameRunning: isGameRunning(),
+                      gameFound: fm.fileExists(atPath: game.gameBinary.path),
+                      frameworksInstalled: fm.fileExists(atPath: game.red4extDir.appendingPathComponent("RED4ext.dylib").path)
+                          && fm.fileExists(atPath: game.launchScript.path),
+                      binaryPrepared: hasRED4extEntitlements(game.gameBinary))
     }
 
     public static func isGameRunning() -> Bool {
@@ -89,5 +101,20 @@ public struct Health: Sendable {
             off += max(size, 8)
         }
         return nil
+    }
+}
+
+extension Health {
+    /// Same test as launch_red4ext.sh: the signature's entitlements allow unsigned executable memory.
+    static func hasRED4extEntitlements(_ binary: URL) -> Bool {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/codesign")
+        p.arguments = ["-d", "--entitlements", "-", "--xml", binary.path]
+        let pipe = Pipe()
+        p.standardOutput = pipe; p.standardError = FileHandle.nullDevice
+        guard (try? p.run()) != nil else { return false }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        p.waitUntilExit()
+        return String(decoding: data, as: UTF8.self).contains("allow-unsigned-executable-memory")
     }
 }

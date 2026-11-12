@@ -124,9 +124,19 @@ struct PlayView: View {
                 if let h = model.health {
                     check(h.steam == .online, "Steam", h.steam == .online ? "signed in and online"
                           : h.steam == .offline ? "open but offline: use Steam > Go Online, or restart Steam" : "not running: start Steam first")
-                    check(h.gameSupported, "Game build", h.gameSupported ? "supported by the installed frameworks"
-                          : "updated by Steam; modded play waits for updated frameworks (vanilla still works)")
-                    if model.playMode == .modded {
+                    if !h.gameFound {
+                        check(false, "Game", "not found in Steam's default folder (~/Library/Application Support/Steam/steamapps/common/Cyberpunk 2077)")
+                    } else if model.playMode == .modded && h.needsSetup {
+                        check(false, "Frameworks", !h.frameworksInstalled ? "not installed yet"
+                              : "the game binary is not prepared for RED4ext (a Steam update or file check replaced it)")
+                        Button(model.settingUp ? "Installing…" : "Install Frameworks") { model.installFrameworks() }
+                            .buttonStyle(CPButtonStyle(tint: Theme.cyan))
+                            .disabled(model.settingUp || h.gameRunning || AppModel.kitDir == nil)
+                    } else {
+                        check(h.gameSupported, "Game build", h.gameSupported ? "supported by the installed frameworks"
+                              : "not 2.3.1 (build 5314028); modded play needs that build (vanilla still works)")
+                    }
+                    if model.playMode == .modded && !h.needsSetup && h.gameFound {
                         check(h.refusedPlugins.isEmpty, "Frameworks",
                               h.refusedPlugins.isEmpty ? "all plugins pass the address check" : "refused: \(h.refusedPlugins.joined(separator: ", "))")
                     }

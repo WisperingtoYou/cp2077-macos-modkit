@@ -49,8 +49,8 @@ fi
 
 if ! "$HERE/codesign_macos.sh" exe "$BIN"; then
     echo "Could not re-sign the game binary."
-    echo "If the error says \"Operation not permitted\": System Settings > Privacy & Security > App Management, allow"
-    echo "your terminal app, then run this again."
+    echo "If the error says \"Operation not permitted\": System Settings > Privacy & Security > App Management, allow the app that ran this (Cyberpunk 2077 Launcher or your"
+    echo "terminal app), then run the install again."
     exit 1
 fi
 codesign -d --entitlements - --xml "$BIN" 2>/dev/null | grep -q allow-unsigned-executable-memory \

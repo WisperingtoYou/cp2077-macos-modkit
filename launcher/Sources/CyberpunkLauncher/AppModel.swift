@@ -59,11 +59,11 @@ final class AppModel: ObservableObject {
     @Published var preparing = 0
     @Published var errorMessage: String?
     @Published var toast: String?
+    @Published var settingUp = false
 
     init() {
         game = .steamDefault
-        let records = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads/projects/cet/backups/mod-install")
-        library = ModLibrary(game: game, installRecords: FileManager.default.fileExists(atPath: records.path) ? records : nil)
+        library = ModLibrary(game: game, installRecords: nil)
         launcher = GameLauncher(game: game)
         playMode = UserDefaults.standard.string(forKey: "playMode").flatMap(PlayMode.init(rawValue:)) ?? .modded
         mods = library.mods
@@ -259,8 +259,49 @@ final class AppModel: ObservableObject {
         }
     }
 
-    static var sccDir: URL {
-        Bundle.main.resourceURL?.appendingPathComponent("scc") ?? URL(fileURLWithPath: "/nonexistent")
+    /// The redscript compiler the frameworks install into the game (run from there, not from the downloaded app bundle).
+    static var sccDir: URL { GamePaths.steamDefault.url("engine/tools") }
+
+    // MARK: frameworks setup
+
+    /// The frameworks and install.sh shipped inside the app (make-app.sh copies them).
+    static var kitDir: URL? {
+        guard let dir = Bundle.main.resourceURL?.appendingPathComponent("modkit"),
+              FileManager.default.fileExists(atPath: dir.appendingPathComponent("install.sh").path) else { return nil }
+        return dir
+    }
+
+    /// Runs the bundled install.sh: checks the game build, backs up replaced files, copies the frameworks and
+    /// re-signs the game binary. Its output goes to the output panel on the Play page.
+    func installFrameworks() {
+        guard let kit = Self.kitDir else { errorMessage = "This build has no bundled frameworks. Run install.sh from the repository."; return }
+        guard !gameRunning else { errorMessage = "Quit the game before installing the frameworks."; return }
+        settingUp = true
+        launchOutput = []
+        let root = game.root
+        DispatchQueue.global(qos: .userInitiated).async {
+            let p = Process()
+            p.executableURL = URL(fileURLWithPath: "/bin/bash")
+            p.arguments = [kit.appendingPathComponent("install.sh").path, root.path]
+            let pipe = Pipe()
+            p.standardOutput = pipe; p.standardError = pipe
+            var status: Int32 = -1, text = "Could not start install.sh"
+            if (try? p.run()) != nil {
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                p.waitUntilExit()
+                status = p.terminationStatus
+                text = String(decoding: data, as: UTF8.self)
+            }
+            Task { @MainActor in
+                self.settingUp = false
+                self.launchOutput = text.split(separator: "\n").map(String.init)
+                if status == 0 { self.toast = "Frameworks installed" } else {
+                    self.errorMessage = "Installing the frameworks failed. The details are in the output panel on the Play page."
+                }
+                self.checkHealth()
+                self.refresh(quiet: true)
+            }
+        }
     }
 
     // MARK: play
